@@ -18,8 +18,8 @@ import java.io.ObjectStreamException;
 
 public class Symbol extends AFn implements IObj, Comparable, Named, Serializable, IHashEq{
 //these must be interned strings!
-final String ns;
-final String name;
+public final String ns;
+public final String name;
 private int _hasheq;
 final IPersistentMap _meta;
 String _str;

@@ -186,7 +186,7 @@ final static public Var IN =
 final static public Var ERR =
 		Var.intern(CLOJURE_NS, Symbol.intern("*err*"),
 		           new PrintWriter(new OutputStreamWriter(System.err), true)).setDynamic();
-final static Keyword TAG_KEY = Keyword.intern(null, "tag");
+public final static Keyword TAG_KEY = Keyword.intern(null, "tag");
 final static Keyword CONST_KEY = Keyword.intern(null, "const");
 final static public Var AGENT = Var.intern(CLOJURE_NS, Symbol.intern("*agent*"), null).setDynamic();
 static Object readeval = readTrueFalseUnknown(System.getProperty("clojure.read.eval","true"));
@@ -196,11 +196,11 @@ final static public Var DEFAULT_DATA_READER_FN = Var.intern(CLOJURE_NS, Symbol.i
 final static public Var DEFAULT_DATA_READERS = Var.intern(CLOJURE_NS, Symbol.intern("default-data-readers"), RT.map());
 final static public Var ASSERT = Var.intern(CLOJURE_NS, Symbol.intern("*assert*"), T).setDynamic();
 final static public Var MATH_CONTEXT = Var.intern(CLOJURE_NS, Symbol.intern("*math-context*"), null).setDynamic();
-static Keyword LINE_KEY = Keyword.intern(null, "line");
-static Keyword COLUMN_KEY = Keyword.intern(null, "column");
-static Keyword FILE_KEY = Keyword.intern(null, "file");
-static Keyword DECLARED_KEY = Keyword.intern(null, "declared");
-static Keyword DOC_KEY = Keyword.intern(null, "doc");
+public static Keyword LINE_KEY = Keyword.intern(null, "line");
+public static Keyword COLUMN_KEY = Keyword.intern(null, "column");
+public static Keyword FILE_KEY = Keyword.intern(null, "file");
+public static Keyword DECLARED_KEY = Keyword.intern(null, "declared");
+public static Keyword DOC_KEY = Keyword.intern(null, "doc");
 final static public Var USE_CONTEXT_CLASSLOADER =
 		Var.intern(CLOJURE_NS, Symbol.intern("*use-context-classloader*"), T).setDynamic();
 //boolean
@@ -222,8 +222,8 @@ final public static Var CURRENT_NS = Var.intern(CLOJURE_NS, Symbol.intern("*ns*"
 final static Var FLUSH_ON_NEWLINE = Var.intern(CLOJURE_NS, Symbol.intern("*flush-on-newline*"), T).setDynamic();
 final static Var PRINT_META = Var.intern(CLOJURE_NS, Symbol.intern("*print-meta*"), F).setDynamic();
 final static Var PRINT_READABLY = Var.intern(CLOJURE_NS, Symbol.intern("*print-readably*"), T).setDynamic();
-final static Var PRINT_DUP = Var.intern(CLOJURE_NS, Symbol.intern("*print-dup*"), F).setDynamic();
-final static Var WARN_ON_REFLECTION = Var.intern(CLOJURE_NS, Symbol.intern("*warn-on-reflection*"), F).setDynamic();
+public final static Var PRINT_DUP = Var.intern(CLOJURE_NS, Symbol.intern("*print-dup*"), F).setDynamic();
+public final static Var WARN_ON_REFLECTION = Var.intern(CLOJURE_NS, Symbol.intern("*warn-on-reflection*"), F).setDynamic();
 final static Var ALLOW_UNRESOLVED_VARS = Var.intern(CLOJURE_NS, Symbol.intern("*allow-unresolved-vars*"), F).setDynamic();
 
 final static Var IN_NS_VAR = Var.intern(CLOJURE_NS, Symbol.intern("in-ns"), F);
