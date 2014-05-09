@@ -18,7 +18,7 @@ import java.util.ArrayList;
 public class FnMethod extends ObjMethod {
     //localbinding->localbinding
     public PersistentVector reqParms = PersistentVector.EMPTY;
-    Compiler.LocalBinding restParm = null;
+    LocalBinding restParm = null;
     Type[] argtypes;
     Class[] argclasses;
     Class retClass;
@@ -66,9 +66,9 @@ public class FnMethod extends ObjMethod {
             method.line = Compiler.lineDeref();
             method.column = Compiler.columnDeref();
             //register as the current method and set up a new env frame
-            Compiler.PathNode pnode = (Compiler.PathNode) Compiler.CLEAR_PATH.get();
+            PathNode pnode = (PathNode) Compiler.CLEAR_PATH.get();
             if (pnode == null)
-                pnode = new Compiler.PathNode(Compiler.PATHTYPE.PATH, null);
+                pnode = new PathNode(PATHTYPE.PATH, null);
             Var.pushThreadBindings(
                     RT.mapUniqueKeys(
                             Compiler.METHOD, method,
@@ -96,7 +96,7 @@ public class FnMethod extends ObjMethod {
                 else
                     Compiler.getAndIncLocalNum();
             }
-            Compiler.PSTATE state = Compiler.PSTATE.REQ;
+            PSTATE state = PSTATE.REQ;
             PersistentVector argLocals = PersistentVector.EMPTY;
             ArrayList<Type> argtypes = new ArrayList();
             ArrayList<Class> argclasses = new ArrayList();
@@ -109,8 +109,8 @@ public class FnMethod extends ObjMethod {
                 if (p.equals(Compiler._AMP_)) {
 //					if(isStatic)
 //						throw Util.runtimeException("Variadic fns cannot be static");
-                    if (state == Compiler.PSTATE.REQ)
-                        state = Compiler.PSTATE.REST;
+                    if (state == PSTATE.REQ)
+                        state = PSTATE.REST;
                     else
                         throw Util.runtimeException("Invalid parameter list");
                 } else {
@@ -124,18 +124,18 @@ public class FnMethod extends ObjMethod {
                     if (pc.isPrimitive() && !(pc == double.class || pc == long.class))
                         throw new IllegalArgumentException("Only long and double primitives are supported: " + p);
 
-                    if (state == Compiler.PSTATE.REST && Compiler.tagOf(p) != null)
+                    if (state == PSTATE.REST && Compiler.tagOf(p) != null)
                         throw Util.runtimeException("& arg cannot have type hint");
-                    if (state == Compiler.PSTATE.REST && method.prim != null)
+                    if (state == PSTATE.REST && method.prim != null)
                         throw Util.runtimeException("fns taking primitives cannot be variadic");
 
-                    if (state == Compiler.PSTATE.REST)
+                    if (state == PSTATE.REST)
                         pc = ISeq.class;
                     argtypes.add(Type.getType(pc));
                     argclasses.add(pc);
-                    Compiler.LocalBinding lb = pc.isPrimitive() ?
+                    LocalBinding lb = pc.isPrimitive() ?
                             Compiler.registerLocal(p, null, new MethodParamExpr(pc), true)
-                            : Compiler.registerLocal(p, state == Compiler.PSTATE.REST ? Compiler.ISEQ : Compiler.tagOf(p), null, true);
+                            : Compiler.registerLocal(p, state == PSTATE.REST ? Compiler.ISEQ : Compiler.tagOf(p), null, true);
                     argLocals = argLocals.cons(lb);
                     switch (state) {
                         case REQ:
@@ -143,7 +143,7 @@ public class FnMethod extends ObjMethod {
                             break;
                         case REST:
                             method.restParm = lb;
-                            state = Compiler.PSTATE.DONE;
+                            state = PSTATE.DONE;
                             break;
 
                         default:
@@ -198,7 +198,7 @@ public class FnMethod extends ObjMethod {
 
             Label end = gen.mark();
             for (ISeq lbs = argLocals.seq(); lbs != null; lbs = lbs.next()) {
-                Compiler.LocalBinding lb = (Compiler.LocalBinding) lbs.first();
+                LocalBinding lb = (LocalBinding) lbs.first();
                 gen.visitLocalVariable(lb.name, argtypes[lb.idx].getDescriptor(), null, loopLabel, end, lb.idx);
             }
         } finally {
@@ -257,7 +257,7 @@ public class FnMethod extends ObjMethod {
             Label end = gen.mark();
             gen.visitLocalVariable("this", "Ljava/lang/Object;", null, loopLabel, end, 0);
             for (ISeq lbs = argLocals.seq(); lbs != null; lbs = lbs.next()) {
-                Compiler.LocalBinding lb = (Compiler.LocalBinding) lbs.first();
+                LocalBinding lb = (LocalBinding) lbs.first();
                 gen.visitLocalVariable(lb.name, argtypes[lb.idx - 1].getDescriptor(), null, loopLabel, end, lb.idx);
             }
         } finally {
@@ -314,7 +314,7 @@ public class FnMethod extends ObjMethod {
 
             gen.visitLocalVariable("this", "Ljava/lang/Object;", null, loopLabel, end, 0);
             for (ISeq lbs = argLocals.seq(); lbs != null; lbs = lbs.next()) {
-                Compiler.LocalBinding lb = (Compiler.LocalBinding) lbs.first();
+                LocalBinding lb = (LocalBinding) lbs.first();
                 gen.visitLocalVariable(lb.name, "Ljava/lang/Object;", null, loopLabel, end, lb.idx);
             }
         } finally {
@@ -331,7 +331,7 @@ public class FnMethod extends ObjMethod {
         return reqParms;
     }
 
-    public final Compiler.LocalBinding restParm() {
+    public final LocalBinding restParm() {
         return restParm;
     }
 

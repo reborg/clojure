@@ -8,6 +8,8 @@ import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.PATHTYPE;
+import clojure.lang.compiler.PathNode;
 
 import java.util.*;
 
@@ -263,7 +265,7 @@ public class CaseExpr implements Expr, MaybePrimitiveExpr {
             SortedMap<Integer, Expr> tests = new TreeMap();
             HashMap<Integer, Expr> thens = new HashMap();
 
-            Compiler.PathNode branch = new Compiler.PathNode(Compiler.PATHTYPE.BRANCH, (Compiler.PathNode) Compiler.CLEAR_PATH.get());
+            PathNode branch = new PathNode(PATHTYPE.BRANCH, (PathNode) Compiler.CLEAR_PATH.get());
 
             for (Object o : caseMap.entrySet()) {
                 Map.Entry e = (Map.Entry) o;
@@ -277,7 +279,7 @@ public class CaseExpr implements Expr, MaybePrimitiveExpr {
                 Expr thenExpr;
                 try {
                     Var.pushThreadBindings(
-                            RT.map(Compiler.CLEAR_PATH, new Compiler.PathNode(Compiler.PATHTYPE.PATH, branch)));
+                            RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
                     thenExpr = Compiler.analyze(context, RT.second(pair));
                 } finally {
                     Var.popThreadBindings();
@@ -288,7 +290,7 @@ public class CaseExpr implements Expr, MaybePrimitiveExpr {
             Expr defaultExpr;
             try {
                 Var.pushThreadBindings(
-                        RT.map(Compiler.CLEAR_PATH, new Compiler.PathNode(Compiler.PATHTYPE.PATH, branch)));
+                        RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
                 defaultExpr = Compiler.analyze(context, args.nth(3));
             } finally {
                 Var.popThreadBindings();

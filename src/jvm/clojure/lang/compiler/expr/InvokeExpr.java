@@ -8,6 +8,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.CompilerException;
 import clojure.lang.compiler.FnMethod;
 import clojure.lang.compiler.ObjMethod;
 
@@ -90,10 +91,10 @@ public class InvokeExpr implements Expr {
                 argvs = argvs.cons(((Expr) args.nth(i)).eval());
             return fn.applyTo(RT.seq(Util.ret1(argvs, argvs = null)));
         } catch (Throwable e) {
-            if (!(e instanceof Compiler.CompilerException))
-                throw new Compiler.CompilerException(source, line, column, e);
+            if (!(e instanceof CompilerException))
+                throw new CompilerException(source, line, column, e);
             else
-                throw (Compiler.CompilerException) e;
+                throw (CompilerException) e;
         }
     }
 

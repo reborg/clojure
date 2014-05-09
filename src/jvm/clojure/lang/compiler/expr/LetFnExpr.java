@@ -6,7 +6,9 @@ import clojure.asm.Type;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.compiler.BindingInit;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.LocalBinding;
 
 public class LetFnExpr implements Expr {
     public final PersistentVector bindingInits;
@@ -48,7 +50,7 @@ public class LetFnExpr implements Expr {
                     Symbol sym = (Symbol) bindings.nth(i);
                     if (sym.getNamespace() != null)
                         throw Util.runtimeException("Can't let qualified name: " + sym);
-                    Compiler.LocalBinding lb = Compiler.registerLocal(sym, Compiler.tagOf(sym), null, false);
+                    LocalBinding lb = Compiler.registerLocal(sym, Compiler.tagOf(sym), null, false);
                     lb.canBeCleared = false;
                     lbs = lbs.cons(lb);
                 }
@@ -56,9 +58,9 @@ public class LetFnExpr implements Expr {
                 for (int i = 0; i < bindings.count(); i += 2) {
                     Symbol sym = (Symbol) bindings.nth(i);
                     Expr init = Compiler.analyze(C.EXPRESSION, bindings.nth(i + 1), sym.name);
-                    Compiler.LocalBinding lb = (Compiler.LocalBinding) lbs.nth(i / 2);
+                    LocalBinding lb = (LocalBinding) lbs.nth(i / 2);
                     lb.init = init;
-                    Compiler.BindingInit bi = new Compiler.BindingInit(lb, init);
+                    BindingInit bi = new BindingInit(lb, init);
                     bindingInits = bindingInits.cons(bi);
                 }
                 return new LetFnExpr(bindingInits, (new BodyExpr.Parser()).parse(context, body));
@@ -74,7 +76,7 @@ public class LetFnExpr implements Expr {
 
     public void emit(C context, ObjExpr objx, GeneratorAdapter gen) {
         for (int i = 0; i < bindingInits.count(); i++) {
-            Compiler.BindingInit bi = (Compiler.BindingInit) bindingInits.nth(i);
+            BindingInit bi = (BindingInit) bindingInits.nth(i);
             gen.visitInsn(Opcodes.ACONST_NULL);
             gen.visitVarInsn(Compiler.OBJECT_TYPE.getOpcode(Opcodes.ISTORE), bi.binding.idx);
         }
@@ -82,14 +84,14 @@ public class LetFnExpr implements Expr {
         IPersistentSet lbset = PersistentHashSet.EMPTY;
 
         for (int i = 0; i < bindingInits.count(); i++) {
-            Compiler.BindingInit bi = (Compiler.BindingInit) bindingInits.nth(i);
+            BindingInit bi = (BindingInit) bindingInits.nth(i);
             lbset = (IPersistentSet) lbset.cons(bi.binding);
             bi.init.emit(C.EXPRESSION, objx, gen);
             gen.visitVarInsn(Compiler.OBJECT_TYPE.getOpcode(Opcodes.ISTORE), bi.binding.idx);
         }
 
         for (int i = 0; i < bindingInits.count(); i++) {
-            Compiler.BindingInit bi = (Compiler.BindingInit) bindingInits.nth(i);
+            BindingInit bi = (BindingInit) bindingInits.nth(i);
             ObjExpr fe = (ObjExpr) bi.init;
             gen.visitVarInsn(Compiler.OBJECT_TYPE.getOpcode(Opcodes.ILOAD), bi.binding.idx);
             fe.emitLetFnInits(gen, objx, lbset);
@@ -102,7 +104,7 @@ public class LetFnExpr implements Expr {
         Label end = gen.mark();
 //		gen.visitLocalVariable("this", "Ljava/lang/Object;", null, loopLabel, end, 0);
         for (ISeq bis = bindingInits.seq(); bis != null; bis = bis.next()) {
-            Compiler.BindingInit bi = (Compiler.BindingInit) bis.first();
+            BindingInit bi = (BindingInit) bis.first();
             String lname = bi.binding.name;
             if (lname.endsWith("__auto__"))
                 lname += RT.nextID();

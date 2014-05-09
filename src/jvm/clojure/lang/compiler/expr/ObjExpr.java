@@ -6,6 +6,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.LocalBinding;
 
 import java.io.IOException;
 import java.lang.reflect.Modifier;
@@ -137,7 +138,7 @@ public class ObjExpr implements Expr {
     public Type[] ctorTypes() {
         IPersistentVector tv = !supportsMeta() ? PersistentVector.EMPTY : RT.vector(Compiler.IPERSISTENTMAP_TYPE);
         for (ISeq s = RT.keys(closes); s != null; s = s.next()) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) s.first();
+            LocalBinding lb = (LocalBinding) s.first();
             if (lb.getPrimitiveType() != null)
                 tv = tv.cons(Type.getType(lb.getPrimitiveType()));
             else
@@ -150,6 +151,7 @@ public class ObjExpr implements Expr {
     }
 
     public void compile(String superName, String[] interfaceNames, boolean oneTimeUse) throws IOException {
+//        System.out.println(String.format("ObjExpr.compile() name %s", name));
         //create bytecode for a class
         //with name current_ns.defname[$letname]+
         //anonymous fns get names fn__id
@@ -260,7 +262,7 @@ public class ObjExpr implements Expr {
         }
         //instance fields for closed-overs
         for (ISeq s = RT.keys(closes); s != null; s = s.next()) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) s.first();
+            LocalBinding lb = (LocalBinding) s.first();
             if (isDeftype()) {
                 int access = isVolatile(lb) ? Opcodes.ACC_VOLATILE :
                         isMutable(lb) ? 0 :
@@ -332,7 +334,7 @@ public class ObjExpr implements Expr {
 
         int a = supportsMeta() ? 2 : 1;
         for (ISeq s = RT.keys(closes); s != null; s = s.next(), ++a) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) s.first();
+            LocalBinding lb = (LocalBinding) s.first();
             ctorgen.loadThis();
             Class primc = lb.getPrimitiveType();
             if (primc != null) {
@@ -428,7 +430,7 @@ public class ObjExpr implements Expr {
             gen.loadArg(0);
 
             for (ISeq s = RT.keys(closes); s != null; s = s.next(), ++a) {
-                Compiler.LocalBinding lb = (Compiler.LocalBinding) s.first();
+                LocalBinding lb = (LocalBinding) s.first();
                 gen.loadThis();
                 Class primc = lb.getPrimitiveType();
                 if (primc != null) {
@@ -693,13 +695,13 @@ public class ObjExpr implements Expr {
         }
     }
 
-    public boolean isMutable(Compiler.LocalBinding lb) {
+    public boolean isMutable(LocalBinding lb) {
         return isVolatile(lb) ||
                 RT.booleanCast(RT.contains(fields, lb.sym)) &&
                         RT.booleanCast(RT.get(lb.sym.meta(), Keyword.intern("unsynchronized-mutable")));
     }
 
-    public boolean isVolatile(Compiler.LocalBinding lb) {
+    public boolean isVolatile(LocalBinding lb) {
         return RT.booleanCast(RT.contains(fields, lb.sym)) &&
                 RT.booleanCast(RT.get(lb.sym.meta(), Keyword.intern("volatile-mutable")));
     }
@@ -754,7 +756,7 @@ public class ObjExpr implements Expr {
         gen.checkCast(objtype);
 
         for (ISeq s = RT.keys(closes); s != null; s = s.next()) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) s.first();
+            LocalBinding lb = (LocalBinding) s.first();
             if (letFnLocals.contains(lb)) {
                 Class primc = lb.getPrimitiveType();
                 gen.dup();
@@ -784,7 +786,7 @@ public class ObjExpr implements Expr {
                 gen.visitInsn(Opcodes.ACONST_NULL);
             for (ISeq s = RT.seq(closesExprs); s != null; s = s.next()) {
                 LocalBindingExpr lbe = (LocalBindingExpr) s.first();
-                Compiler.LocalBinding lb = lbe.b;
+                LocalBinding lb = lbe.b;
                 if (lb.getPrimitiveType() != null)
                     objx.emitUnboxedLocal(gen, lb);
                 else
@@ -806,7 +808,7 @@ public class ObjExpr implements Expr {
                 : IFn.class;
     }
 
-    public void emitAssignLocal(GeneratorAdapter gen, Compiler.LocalBinding lb, Expr val) {
+    public void emitAssignLocal(GeneratorAdapter gen, LocalBinding lb, Expr val) {
         if (!isMutable(lb))
             throw new IllegalArgumentException("Cannot assign to non-mutable: " + lb.name);
         Class primc = lb.getPrimitiveType();
@@ -823,7 +825,7 @@ public class ObjExpr implements Expr {
         }
     }
 
-    public void emitLocal(GeneratorAdapter gen, Compiler.LocalBinding lb, boolean clear) {
+    public void emitLocal(GeneratorAdapter gen, LocalBinding lb, boolean clear) {
         if (closes.containsKey(lb)) {
             Class primc = lb.getPrimitiveType();
             gen.loadThis();
@@ -873,7 +875,7 @@ public class ObjExpr implements Expr {
         }
     }
 
-    public void emitUnboxedLocal(GeneratorAdapter gen, Compiler.LocalBinding lb) {
+    public void emitUnboxedLocal(GeneratorAdapter gen, LocalBinding lb) {
         int argoff = isStatic ? 0 : 1;
         Class primc = lb.getPrimitiveType();
         if (closes.containsKey(lb)) {

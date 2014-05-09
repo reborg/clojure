@@ -121,7 +121,7 @@ abstract public class ObjMethod {
             Label end = gen.mark();
             gen.visitLocalVariable("this", "Ljava/lang/Object;", null, loopLabel, end, 0);
             for (ISeq lbs = argLocals.seq(); lbs != null; lbs = lbs.next()) {
-                Compiler.LocalBinding lb = (Compiler.LocalBinding) lbs.first();
+                LocalBinding lb = (LocalBinding) lbs.first();
                 gen.visitLocalVariable(lb.name, "Ljava/lang/Object;", null, loopLabel, end, lb.idx);
             }
         } finally {
@@ -138,7 +138,7 @@ abstract public class ObjMethod {
 
     void emitClearLocalsOld(GeneratorAdapter gen) {
         for (int i = 0; i < argLocals.count(); i++) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) argLocals.nth(i);
+            LocalBinding lb = (LocalBinding) argLocals.nth(i);
             if (!localsUsedInCatchFinally.contains(lb.idx) && lb.getPrimitiveType() == null) {
                 gen.visitInsn(Opcodes.ACONST_NULL);
                 gen.storeArg(lb.idx - 1);
@@ -155,7 +155,7 @@ abstract public class ObjMethod {
 //			}
         for (int i = numParams() + 1; i < maxLocal + 1; i++) {
             if (!localsUsedInCatchFinally.contains(i)) {
-                Compiler.LocalBinding b = (Compiler.LocalBinding) RT.get(indexlocals, i);
+                LocalBinding b = (LocalBinding) RT.get(indexlocals, i);
                 if (b == null || Compiler.maybePrimitiveType(b.init) == null) {
                     gen.visitInsn(Opcodes.ACONST_NULL);
                     gen.visitVarInsn(Compiler.OBJECT_TYPE.getOpcode(Opcodes.ISTORE), i);

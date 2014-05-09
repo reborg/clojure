@@ -15,10 +15,13 @@
 ;;  Created 22 October 2008
 
 (ns clojure.test-clojure.evaluation
+  (:import (clojure.lang Compiler)
+           (clojure.lang.compiler CompilerException))
   (:use clojure.test))
 
 (import '(java.lang Boolean)
-        '(clojure.lang Compiler Compiler$CompilerException))
+        '(clojure.lang Compiler)
+        '(clojure.lang.compiler CompilerException))
 
 (defmacro test-that
   "Provides a useful way for specifying the purpose of tests. If the first-level
@@ -125,7 +128,7 @@
     (throws-with-msg
       #".*resolution-test/baz is not public.*"
       (eval 'resolution-test/baz)
-      Compiler$CompilerException))
+      CompilerException))
 
   (test-that
     "If a symbol is package-qualified, its value is the Java class named by the
@@ -135,7 +138,7 @@
   (test-that
     "If a symbol is package-qualified, it is an error if there is no Class named
     by the symbol"
-    (is (thrown? Compiler$CompilerException (eval 'java.lang.FooBar))))
+    (is (thrown? CompilerException (eval 'java.lang.FooBar))))
 
   (test-that
     "If a symbol is not qualified, the following applies, in this order:
@@ -160,9 +163,9 @@
     ; First
     (doall (for [form '(def if do let quote var fn loop recur throw try
                          monitor-enter monitor-exit)]
-             (is (thrown? Compiler$CompilerException (eval form)))))
+             (is (thrown? CompilerException (eval form)))))
     (let [if "foo"]
-      (is (thrown? Compiler$CompilerException (eval 'if)))
+      (is (thrown? CompilerException (eval 'if)))
 
     ; Second
       (is (= (eval 'Boolean) (class-for-name "java.lang.Boolean"))))
@@ -174,10 +177,10 @@
 
     ; Fourth
     (in-test-ns (is (= (eval 'foo) "abc")))
-    (is (thrown? Compiler$CompilerException (eval 'bar))) ; not in this namespace
+    (is (thrown? CompilerException (eval 'bar))) ; not in this namespace
 
     ; Fifth
-    (is (thrown? Compiler$CompilerException (eval 'foobar)))))
+    (is (thrown? CompilerException (eval 'foobar)))))
 
 ;;; Metadata tests ;;;
 

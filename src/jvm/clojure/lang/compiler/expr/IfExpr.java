@@ -6,6 +6,8 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.PATHTYPE;
+import clojure.lang.compiler.PathNode;
 
 public class IfExpr implements Expr, MaybePrimitiveExpr {
     public final Expr testExpr;
@@ -112,19 +114,19 @@ public class IfExpr implements Expr, MaybePrimitiveExpr {
                 throw Util.runtimeException("Too many arguments to if");
             else if (form.count() < 3)
                 throw Util.runtimeException("Too few arguments to if");
-            Compiler.PathNode branch = new Compiler.PathNode(Compiler.PATHTYPE.BRANCH, (Compiler.PathNode) Compiler.CLEAR_PATH.get());
+            PathNode branch = new PathNode(PATHTYPE.BRANCH, (PathNode) Compiler.CLEAR_PATH.get());
             Expr testexpr = Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, RT.second(form));
             Expr thenexpr, elseexpr;
             try {
                 Var.pushThreadBindings(
-                        RT.map(Compiler.CLEAR_PATH, new Compiler.PathNode(Compiler.PATHTYPE.PATH, branch)));
+                        RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
                 thenexpr = Compiler.analyze(context, RT.third(form));
             } finally {
                 Var.popThreadBindings();
             }
             try {
                 Var.pushThreadBindings(
-                        RT.map(Compiler.CLEAR_PATH, new Compiler.PathNode(Compiler.PATHTYPE.PATH, branch)));
+                        RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
                 elseexpr = Compiler.analyze(context, RT.fourth(form));
             } finally {
                 Var.popThreadBindings();

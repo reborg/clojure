@@ -9,6 +9,7 @@ import clojure.lang.Compiler;
 import clojure.lang.ILookup;
 import clojure.lang.Symbol;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.CompilerException;
 
 public class KeywordInvokeExpr implements Expr {
     public final KeywordExpr kw;
@@ -34,10 +35,10 @@ public class KeywordInvokeExpr implements Expr {
         try {
             return kw.k.invoke(target.eval());
         } catch (Throwable e) {
-            if (!(e instanceof Compiler.CompilerException))
-                throw new Compiler.CompilerException(source, line, column, e);
+            if (!(e instanceof CompilerException))
+                throw new CompilerException(source, line, column, e);
             else
-                throw (Compiler.CompilerException) e;
+                throw (CompilerException) e;
         }
     }
 

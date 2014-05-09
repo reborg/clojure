@@ -6,6 +6,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.LocalBinding;
 
 import static clojure.lang.Compiler.getAndIncLocalNum;
 
@@ -19,13 +20,13 @@ public class TryExpr implements Expr {
     public static class CatchClause {
         //final String className;
         public final Class c;
-        public final Compiler.LocalBinding lb;
+        public final LocalBinding lb;
         public final Expr handler;
         Label label;
         Label endLabel;
 
 
-        public CatchClause(Class c, Compiler.LocalBinding lb, Expr handler) {
+        public CatchClause(Class c, LocalBinding lb, Expr handler) {
             this.c = c;
             this.lb = lb;
             this.handler = handler;
@@ -169,7 +170,7 @@ public class TryExpr implements Expr {
                                 Compiler.IN_CATCH_FINALLY, RT.T);
                         try {
                             Var.pushThreadBindings(dynamicBindings);
-                            Compiler.LocalBinding lb = Compiler.registerLocal(sym,
+                            LocalBinding lb = Compiler.registerLocal(sym,
                                     (Symbol) (RT.second(f) instanceof Symbol ? RT.second(f)
                                             : null),
                                     null, false);

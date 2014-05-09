@@ -4,24 +4,27 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.LocalBinding;
+import clojure.lang.compiler.PATHTYPE;
+import clojure.lang.compiler.PathNode;
 
 public class LocalBindingExpr implements Expr, MaybePrimitiveExpr, AssignableExpr {
-    public final Compiler.LocalBinding b;
+    public final LocalBinding b;
     public final Symbol tag;
 
-    public final Compiler.PathNode clearPath;
-    public final Compiler.PathNode clearRoot;
+    public final PathNode clearPath;
+    public final PathNode clearRoot;
     public boolean shouldClear = false;
 
 
-    public LocalBindingExpr(Compiler.LocalBinding b, Symbol tag) {
+    public LocalBindingExpr(LocalBinding b, Symbol tag) {
         if (b.getPrimitiveType() != null && tag != null)
             throw new UnsupportedOperationException("Can't type hint a primitive local");
         this.b = b;
         this.tag = tag;
 
-        this.clearPath = (Compiler.PathNode) Compiler.CLEAR_PATH.get();
-        this.clearRoot = (Compiler.PathNode) Compiler.CLEAR_ROOT.get();
+        this.clearPath = (PathNode) Compiler.CLEAR_PATH.get();
+        this.clearRoot = (PathNode) Compiler.CLEAR_ROOT.get();
         IPersistentCollection sites = (IPersistentCollection) RT.get(Compiler.CLEAR_SITES.get(), b);
 
         if (b.idx > 0) {
@@ -30,8 +33,8 @@ public class LocalBindingExpr implements Expr, MaybePrimitiveExpr, AssignableExp
             if (sites != null) {
                 for (ISeq s = sites.seq(); s != null; s = s.next()) {
                     LocalBindingExpr o = (LocalBindingExpr) s.first();
-                    Compiler.PathNode common = Compiler.commonPath(clearPath, o.clearPath);
-                    if (common != null && common.type == Compiler.PATHTYPE.PATH)
+                    PathNode common = Compiler.commonPath(clearPath, o.clearPath);
+                    if (common != null && common.type == PATHTYPE.PATH)
                         o.shouldClear = false;
 //                    else
 //                        dummy = null;

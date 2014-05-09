@@ -5,6 +5,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.CompilerException;
 
 public class DefExpr implements Expr {
 	public final Var var;
@@ -65,10 +66,10 @@ public class DefExpr implements Expr {
 			}
 		catch(Throwable e)
 			{
-			if(!(e instanceof Compiler.CompilerException))
-				throw new Compiler.CompilerException(source, line, column, e);
+			if(!(e instanceof CompilerException))
+				throw new CompilerException(source, line, column, e);
 			else
-				throw (Compiler.CompilerException) e;
+				throw (CompilerException) e;
 			}
 	}
 

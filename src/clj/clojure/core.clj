@@ -5399,7 +5399,7 @@
           boring? #(not= (.getMethodName ^StackTraceElement %) "doInvoke")
           trace (into-array (drop 2 (drop-while boring? raw-trace)))]
       (.setStackTrace exception trace)
-      (throw (clojure.lang.Compiler$CompilerException.
+      (throw (clojure.lang.compiler.CompilerException.
               *file*
               (.deref clojure.lang.Compiler/LINE)
               (.deref clojure.lang.Compiler/COLUMN)

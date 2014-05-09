@@ -6,6 +6,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.CompilerException;
 import clojure.lang.compiler.ObjMethod;
 
 import java.lang.reflect.Modifier;
@@ -92,10 +93,10 @@ public class InstanceMethodExpr extends MethodExpr {
             }
             return Reflector.invokeInstanceMethod(targetval, methodName, argvals);
         } catch (Throwable e) {
-            if (!(e instanceof Compiler.CompilerException))
-                throw new Compiler.CompilerException(source, line, column, e);
+            if (!(e instanceof CompilerException))
+                throw new CompilerException(source, line, column, e);
             else
-                throw (Compiler.CompilerException) e;
+                throw (CompilerException) e;
         }
     }
 

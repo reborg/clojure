@@ -68,7 +68,7 @@ public class NewInstanceMethod extends ObjMethod {
             method.line = Compiler.lineDeref();
             method.column = Compiler.columnDeref();
             //register as the current method and set up a new env frame
-            Compiler.PathNode pnode = new Compiler.PathNode(Compiler.PATHTYPE.PATH, (Compiler.PathNode) Compiler.CLEAR_PATH.get());
+            PathNode pnode = new PathNode(PATHTYPE.PATH, (PathNode) Compiler.CLEAR_PATH.get());
             Var.pushThreadBindings(
                     RT.mapUniqueKeys(
                             Compiler.METHOD, method,
@@ -152,7 +152,7 @@ public class NewInstanceMethod extends ObjMethod {
             method.exclasses = m.getExceptionTypes();
 
             for (int i = 0; i < parms.count(); i++) {
-                Compiler.LocalBinding lb = Compiler.registerLocal(psyms[i], null, new MethodParamExpr(pclasses[i]), true);
+                LocalBinding lb = Compiler.registerLocal(psyms[i], null, new MethodParamExpr(pclasses[i]), true);
                 argLocals = argLocals.assocN(i, lb);
                 method.argTypes[i] = Type.getType(pclasses[i]);
             }
@@ -225,7 +225,7 @@ public class NewInstanceMethod extends ObjMethod {
             Label end = gen.mark();
             gen.visitLocalVariable("this", obj.objtype.getDescriptor(), null, loopLabel, end, 0);
             for (ISeq lbs = argLocals.seq(); lbs != null; lbs = lbs.next()) {
-                Compiler.LocalBinding lb = (Compiler.LocalBinding) lbs.first();
+                LocalBinding lb = (LocalBinding) lbs.first();
                 gen.visitLocalVariable(lb.name, argTypes[lb.idx - 1].getDescriptor(), null, loopLabel, end, lb.idx);
             }
         } finally {

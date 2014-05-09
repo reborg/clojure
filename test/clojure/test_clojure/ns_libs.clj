@@ -55,7 +55,7 @@
       (is (= [:a :b] (keys inst2))))
     ;fragile tests, please fix
     #_(testing "you cannot import same local name from a different namespace"
-      (is (thrown? clojure.lang.Compiler$CompilerException
+      (is (thrown? clojure.lang.compiler.CompilerException
                   #"ReimportMe already refers to: class exporter.ReimportMe in namespace: importer"
                   (binding [*ns* *ns*]
                     (eval '(do (ns exporter-2)

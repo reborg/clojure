@@ -10,7 +10,8 @@
 
 
 (ns clojure.test-clojure.compilation
-  (:import (clojure.lang Compiler Compiler$CompilerException))
+  (:import (clojure.lang Compiler)
+           (clojure.lang.compiler CompilerException))
   (:require [clojure.test.generative :refer (defspec)]
             [clojure.data.generators :as gen])
   (:use clojure.test
@@ -60,30 +61,30 @@
 
 (deftest test-no-recur-across-try
   (testing "don't recur to function from inside try"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '(fn [x] (try (recur 1)))))))
   (testing "don't recur to loop from inside try"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '(loop [x 5]
                           (try (recur 1)))))))
   (testing "don't recur to loop from inside of catch inside of try"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '(loop [x 5]
                           (try
                             (catch Exception e
                               (recur 1))))))))
   (testing "don't recur to loop from inside of finally inside of try"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '(loop [x 5]
                           (try
                             (finally
                               (recur 1))))))))
   (testing "don't get confused about what the recur is targeting"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '(loop [x 5]
                           (try (fn [x]) (recur 1)))))))
   (testing "don't allow recur across binding"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '(fn [x] (binding [+ *] (recur 1)))))))
   (testing "allow loop/recur inside try"
     (is (= 0 (eval '(try (loop [x 3]
@@ -204,10 +205,10 @@
 
 (deftest CLJ-1184-do-in-non-list-test
   (testing "do in a vector throws an exception"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '[do 1 2 3]))))
   (testing "do in a set throws an exception"
-    (is (thrown? Compiler$CompilerException
+    (is (thrown? CompilerException
                  (eval '#{do}))))
 
   ;; compile uses a separate code path so we have to call it directly
@@ -222,9 +223,9 @@
                        :when (re-find #"bad_def_test" (str f))]
                  (.delete f)))))]
     (testing "do in a vector throws an exception in compilation"
-      (is (thrown? Compiler$CompilerException (compile "[do 1 2 3]"))))
+      (is (thrown? CompilerException (compile "[do 1 2 3]"))))
     (testing "do in a set throws an exception in compilation"
-      (is (thrown? Compiler$CompilerException (compile "#{do}"))))))
+      (is (thrown? CompilerException (compile "#{do}"))))))
 
 (defn gen-name []
   ;; Not all names can be correctly demunged. Skip names that contain

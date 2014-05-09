@@ -5,6 +5,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.LocalBinding;
 import clojure.lang.compiler.NewInstanceMethod;
 import clojure.lang.compiler.ObjMethod;
 
@@ -94,7 +95,7 @@ public class NewInstanceExpr extends ObjExpr {
             Object[] closesvec = new Object[2 * fieldSyms.count()];
             for (int i = 0; i < fieldSyms.count(); i++) {
                 Symbol sym = (Symbol) fieldSyms.nth(i);
-                Compiler.LocalBinding lb = new Compiler.LocalBinding(-1, sym, null,
+                LocalBinding lb = new LocalBinding(-1, sym, null,
                         new MethodParamExpr(Compiler.tagClass(Compiler.tagOf(sym))), false, null);
                 fmap = fmap.assoc(sym, lb);
                 closesvec[i * 2] = lb;
@@ -197,7 +198,7 @@ public class NewInstanceExpr extends ObjExpr {
 
         //instance fields for closed-overs
         for (ISeq s = RT.keys(ret.closes); s != null; s = s.next()) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) s.first();
+            LocalBinding lb = (LocalBinding) s.first();
             int access = Opcodes.ACC_PUBLIC + (ret.isVolatile(lb) ? Opcodes.ACC_VOLATILE :
                     ret.isMutable(lb) ? 0 :
                             Opcodes.ACC_FINAL);

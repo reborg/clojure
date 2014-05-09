@@ -13,7 +13,8 @@
     :doc "Utilities meant to be used interactively at the REPL"}
   clojure.repl
   (:import (java.io LineNumberReader InputStreamReader PushbackReader)
-           (clojure.lang RT Reflector)))
+           (clojure.lang RT Reflector)
+           (clojure.lang.compiler CompilerException)))
 
 (def ^:private special-doc-map
   '{. {:url "java_interop#dot"
@@ -201,8 +202,8 @@ str-or-pattern."
   {:added "1.3"}
   [^Throwable t]
   (loop [cause t]
-    (if (and (instance? clojure.lang.Compiler$CompilerException cause)
-             (not= (.source ^clojure.lang.Compiler$CompilerException cause) "NO_SOURCE_FILE"))
+    (if (and (instance? CompilerException cause)
+             (not= (.source ^CompilerException cause) "NO_SOURCE_FILE"))
       cause
       (if-let [cause (.getCause cause)]
         (recur cause)

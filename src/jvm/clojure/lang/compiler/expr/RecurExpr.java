@@ -8,6 +8,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.compiler.C;
+import clojure.lang.compiler.LocalBinding;
 
 public class RecurExpr implements Expr, MaybePrimitiveExpr {
     public final IPersistentVector args;
@@ -34,7 +35,7 @@ public class RecurExpr implements Expr, MaybePrimitiveExpr {
         if (loopLabel == null)
             throw new IllegalStateException();
         for (int i = 0; i < loopLocals.count(); i++) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) loopLocals.nth(i);
+            LocalBinding lb = (LocalBinding) loopLocals.nth(i);
             Expr arg = (Expr) args.nth(i);
             if (lb.getPrimitiveType() != null) {
                 Class primc = lb.getPrimitiveType();
@@ -72,7 +73,7 @@ public class RecurExpr implements Expr, MaybePrimitiveExpr {
         }
 
         for (int i = loopLocals.count() - 1; i >= 0; i--) {
-            Compiler.LocalBinding lb = (Compiler.LocalBinding) loopLocals.nth(i);
+            LocalBinding lb = (LocalBinding) loopLocals.nth(i);
             Class primc = lb.getPrimitiveType();
             if (lb.isArg)
                 gen.storeArg(lb.idx - (objx.isStatic ? 0 : 1));
@@ -116,7 +117,7 @@ public class RecurExpr implements Expr, MaybePrimitiveExpr {
                         String.format("Mismatched argument count to recur, expected: %d args, got: %d",
                                 loopLocals.count(), args.count()));
             for (int i = 0; i < loopLocals.count(); i++) {
-                Compiler.LocalBinding lb = (Compiler.LocalBinding) loopLocals.nth(i);
+                LocalBinding lb = (LocalBinding) loopLocals.nth(i);
                 Class primc = lb.getPrimitiveType();
                 if (primc != null) {
                     boolean mismatch = false;

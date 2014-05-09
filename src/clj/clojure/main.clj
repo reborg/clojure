@@ -12,8 +12,8 @@
        :author "Stephen C. Gilardi and Rich Hickey"}
   clojure.main
   (:refer-clojure :exclude [with-bindings])
-  (:import (clojure.lang Compiler Compiler$CompilerException
-                         LineNumberingPushbackReader RT))
+  (:import (clojure.lang Compiler LineNumberingPushbackReader RT)
+           (clojure.lang.compiler CompilerException))
   ;;(:use [clojure.repl :only (demunge root-cause stack-element-str)])
   )
 
@@ -40,8 +40,8 @@
   {:added "1.3"}
   [^Throwable t]
   (loop [cause t]
-    (if (and (instance? clojure.lang.Compiler$CompilerException cause)
-             (not= (.source ^clojure.lang.Compiler$CompilerException cause) "NO_SOURCE_FILE"))
+    (if (and (instance? CompilerException cause)
+             (not= (.source ^CompilerException cause) "NO_SOURCE_FILE"))
       cause
       (if-let [cause (.getCause cause)]
         (recur cause)
@@ -154,7 +154,7 @@
     (binding [*out* *err*]
       (println (str (-> ex class .getSimpleName)
                     " " (.getMessage ex) " "
-                    (when-not (instance? clojure.lang.Compiler$CompilerException ex)
+                    (when-not (instance? CompilerException ex)
                       (str " " (if el (stack-element-str el) "[trace missing]"))))))))
 
 (def ^{:doc "A sequence of lib specs that are applied to `require`

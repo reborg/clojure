@@ -17,8 +17,7 @@ package clojure.lang;
 import clojure.asm.*;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
-import clojure.lang.compiler.C;
-import clojure.lang.compiler.ObjMethod;
+import clojure.lang.compiler.*;
 import clojure.lang.compiler.expr.*;
 
 import java.io.*;
@@ -300,10 +299,6 @@ public class Compiler implements Opcodes {
     //LocalBinding -> Set<LocalBindingExpr>
     static final public Var CLEAR_SITES = Var.create(null).setDynamic();
 
-    private class Recur {
-    }
-
-    ;
     static final public Class RECUR_CLASS = Recur.class;
 
     static boolean isSpecial(Object sym) {
@@ -655,97 +650,8 @@ public class Compiler implements Opcodes {
 //
 //}
 
-    static class SourceDebugExtensionAttribute extends Attribute {
-        public SourceDebugExtensionAttribute() {
-            super("SourceDebugExtension");
-        }
-
-        void writeSMAP(ClassWriter cw, String smap) {
-            ByteVector bv = write(cw, null, -1, -1, -1);
-            bv.putUTF8(smap);
-        }
-    }
-
-    public enum PATHTYPE {
-        PATH, BRANCH;
-    }
-
-    public static class PathNode {
-        public final PATHTYPE type;
-        final PathNode parent;
-
-        public PathNode(PATHTYPE type, PathNode parent) {
-            this.type = type;
-            this.parent = parent;
-        }
-    }
-
     static PathNode clearPathRoot() {
         return (PathNode) CLEAR_ROOT.get();
-    }
-
-    public enum PSTATE {
-        REQ, REST, DONE
-    }
-
-    public static class LocalBinding {
-        public final Symbol sym;
-        public final Symbol tag;
-        public Expr init;
-        public final int idx;
-        public final String name;
-        public final boolean isArg;
-        public final PathNode clearPathRoot;
-        public boolean canBeCleared = !RT.booleanCast(getCompilerOption(disableLocalsClearingKey));
-        public boolean recurMistmatch = false;
-
-        public LocalBinding(int num, Symbol sym, Symbol tag, Expr init, boolean isArg, PathNode clearPathRoot) {
-            if (maybePrimitiveType(init) != null && tag != null)
-                throw new UnsupportedOperationException("Can't type hint a local with a primitive initializer");
-            this.idx = num;
-            this.sym = sym;
-            this.tag = tag;
-            this.init = init;
-            this.isArg = isArg;
-            this.clearPathRoot = clearPathRoot;
-            name = munge(sym.name);
-        }
-
-        public boolean hasJavaClass() {
-            if (init != null && init.hasJavaClass()
-                    && Util.isPrimitive(init.getJavaClass())
-                    && !(init instanceof MaybePrimitiveExpr))
-                return false;
-            return tag != null
-                    || (init != null && init.hasJavaClass());
-        }
-
-        public Class getJavaClass() {
-            return tag != null ? HostExpr.tagToClass(tag)
-                    : init.getJavaClass();
-        }
-
-        public Class getPrimitiveType() {
-            return maybePrimitiveType(init);
-        }
-    }
-
-    public static class BindingInit {
-        public LocalBinding binding;
-        public Expr init;
-
-        public final LocalBinding binding() {
-            return binding;
-        }
-
-        public final Expr init() {
-            return init;
-        }
-
-        public BindingInit(LocalBinding binding, Expr init) {
-            this.binding = binding;
-            this.init = init;
-        }
     }
 
     public static LocalBinding registerLocal(Symbol sym, Symbol tag, Expr init, boolean isArg) {
@@ -824,22 +730,6 @@ public class Compiler implements Opcodes {
                 throw new CompilerException((String) SOURCE_PATH.deref(), lineDeref(), columnDeref(), e);
             else
                 throw (CompilerException) e;
-        }
-    }
-
-    static public class CompilerException extends RuntimeException {
-        final public String source;
-
-        final public int line;
-
-        public CompilerException(String source, int line, int column, Throwable cause) {
-            super(errorMsg(source, line, column, cause.toString()), cause);
-            this.source = source;
-            this.line = line;
-        }
-
-        public String toString() {
-            return getMessage();
         }
     }
 
@@ -993,7 +883,7 @@ public class Compiler implements Opcodes {
         }
     }
 
-    static String errorMsg(String source, int line, int column, String s) {
+    public static String errorMsg(String source, int line, int column, String s) {
         return String.format("%s, compiling:(%s:%d:%d)", s, source, line, column);
     }
 

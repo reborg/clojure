@@ -6,8 +6,7 @@ import clojure.asm.Type;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.*;
 import clojure.lang.Compiler;
-import clojure.lang.compiler.C;
-import clojure.lang.compiler.ObjMethod;
+import clojure.lang.compiler.*;
 
 import java.util.HashMap;
 
@@ -56,9 +55,9 @@ public static class Parser implements IParser {
             method.locals = backupMethodLocals;
             method.indexlocals = backupMethodIndexLocals;
 
-            Compiler.PathNode looproot = new Compiler.PathNode(Compiler.PATHTYPE.PATH, (Compiler.PathNode) Compiler.CLEAR_PATH.get());
-            Compiler.PathNode clearroot = new Compiler.PathNode(Compiler.PATHTYPE.PATH,looproot);
-            Compiler.PathNode clearpath = new Compiler.PathNode(Compiler.PATHTYPE.PATH,looproot);
+            PathNode looproot = new PathNode(PATHTYPE.PATH, (PathNode) Compiler.CLEAR_PATH.get());
+            PathNode clearroot = new PathNode(PATHTYPE.PATH,looproot);
+            PathNode clearpath = new PathNode(PATHTYPE.PATH,looproot);
             if(isLoop)
                 dynamicBindings = dynamicBindings.assoc(Compiler.LOOP_LOCALS, null);
 
@@ -101,8 +100,8 @@ public static class Parser implements IParser {
                                        Compiler.NO_RECUR, null));
 
                             }
-                        Compiler.LocalBinding lb = Compiler.registerLocal(sym, Compiler.tagOf(sym), init, false);
-                        Compiler.BindingInit bi = new Compiler.BindingInit(lb, init);
+                        LocalBinding lb = Compiler.registerLocal(sym, Compiler.tagOf(sym), init, false);
+                        BindingInit bi = new BindingInit(lb, init);
                         bindingInits = bindingInits.cons(bi);
                         if(isLoop)
                             loopLocals = loopLocals.cons(lb);
@@ -134,7 +133,7 @@ public static class Parser implements IParser {
                         Var.popThreadBindings();
                         for(int i = 0;i< loopLocals.count();i++)
                             {
-                            Compiler.LocalBinding lb = (Compiler.LocalBinding) loopLocals.nth(i);
+                            LocalBinding lb = (LocalBinding) loopLocals.nth(i);
                             if(lb.recurMistmatch)
                                 {
                                 recurMismatches = (IPersistentVector)recurMismatches.assoc(i, RT.T);
@@ -168,10 +167,10 @@ public void emitUnboxed(C context, ObjExpr objx, GeneratorAdapter gen){
 
 
 public void doEmit(C context, ObjExpr objx, GeneratorAdapter gen, boolean emitUnboxed){
-    HashMap<Compiler.BindingInit, Label> bindingLabels = new HashMap();
+    HashMap<BindingInit, Label> bindingLabels = new HashMap();
     for(int i = 0; i < bindingInits.count(); i++)
         {
-        Compiler.BindingInit bi = (Compiler.BindingInit) bindingInits.nth(i);
+        BindingInit bi = (BindingInit) bindingInits.nth(i);
         Class primc = Compiler.maybePrimitiveType(bi.init);
         if(primc != null)
             {
@@ -212,7 +211,7 @@ public void doEmit(C context, ObjExpr objx, GeneratorAdapter gen, boolean emitUn
 //		gen.visitLocalVariable("this", "Ljava/lang/Object;", null, loopLabel, end, 0);
     for(ISeq bis = bindingInits.seq(); bis != null; bis = bis.next())
         {
-        Compiler.BindingInit bi = (Compiler.BindingInit) bis.first();
+        BindingInit bi = (BindingInit) bis.first();
         String lname = bi.binding.name;
         if(lname.endsWith("__auto__"))
             lname += RT.nextID();
