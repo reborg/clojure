@@ -269,7 +269,7 @@ public class NewInstanceExpr extends ObjExpr {
         return c.getName().replace('.', '/');
     }
 
-    protected void emitStatics(ClassVisitor cv) {
+    public void emitStatics(ClassVisitor cv) {
         if (this.isDeftype()) {
             //getBasis()
             clojure.asm.commons.Method meth = clojure.asm.commons.Method.getMethod("clojure.lang.IPersistentVector getBasis()");
@@ -340,7 +340,7 @@ public class NewInstanceExpr extends ObjExpr {
         }
     }
 
-    protected void emitMethods(ClassVisitor cv) {
+    public void emitMethods(ClassVisitor cv) {
         for (ISeq s = RT.seq(methods); s != null; s = s.next()) {
             ObjMethod method = (ObjMethod) s.first();
             method.emit(this, cv);

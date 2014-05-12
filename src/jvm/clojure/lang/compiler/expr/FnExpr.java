@@ -33,7 +33,7 @@ public class FnExpr extends ObjExpr {
         return true;
     }
 
-    boolean supportsMeta() {
+    public boolean supportsMeta() {
         return hasMeta;
     }
 
@@ -41,7 +41,7 @@ public class FnExpr extends ObjExpr {
         return AFunction.class;
     }
 
-    protected void emitMethods(ClassVisitor cv) {
+    public void emitMethods(ClassVisitor cv) {
         //override of invoke/doInvoke for each method
         for (ISeq s = RT.seq(methods); s != null; s = s.next()) {
             ObjMethod method = (ObjMethod) s.first();
