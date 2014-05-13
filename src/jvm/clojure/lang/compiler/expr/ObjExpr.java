@@ -152,8 +152,7 @@ public class ObjExpr implements Expr {
     }
 
     public void compile(String superName, String[] interfaceNames, boolean oneTimeUse) throws IOException {
-        new ASMGen(this, superName, interfaceNames).invoke();
-
+        ASMGen.invoke(this, superName, interfaceNames);
     }
 
     public void emitKeywordCallsites(GeneratorAdapter clinitgen) {

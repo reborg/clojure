@@ -12,17 +12,8 @@ import clojure.lang.compiler.expr.ObjExpr;
 import java.io.IOException;
 
 public class ASMGen {
-    private ObjExpr objExpr;
-    private String superName;
-    private String[] interfaceNames;
 
-    public ASMGen(ObjExpr objExpr, String superName, String... interfaceNames) {
-        this.objExpr = objExpr;
-        this.superName = superName;
-        this.interfaceNames = interfaceNames;
-    }
-
-    public void invoke() throws IOException {
+    public static void invoke(ObjExpr objExpr, String superName, String... interfaceNames) throws IOException {
         //create bytecode for a class
         //with name current_ns.defname[$letname]+
         //anonymous fns get names fn__id
@@ -41,7 +32,7 @@ public class ASMGen {
         if (objExpr.classMeta != null && Compiler.ADD_ANNOTATIONS.isBound())
             Compiler.ADD_ANNOTATIONS.invoke(cv, objExpr.classMeta);
 
-        staticFields(cv);
+        staticFields(objExpr, cv);
 
 //		for(int i=0;i<varCallsites.count();i++)
 //			{
@@ -49,25 +40,25 @@ public class ASMGen {
 //					, varCallsiteName(i), IFN_TYPE.getDescriptor(), null, null);
 //			}
 
-        staticInit(cv);
+        staticInit(objExpr, cv);
 
-        instanceFields(cv);
-        int supportsMeta = constructor(cv);
+        instanceFields(objExpr, cv);
+        int supportsMeta = constructor(objExpr, cv, superName);
 
 
-        alternativeDropConstructor(cv);
+        alternativeDropConstructor(objExpr, cv);
 
         if (objExpr.supportsMeta()) {
-            Type[] ctorTypes = notMetaConstructor(cv);
-            methodMeta(cv);
-            methodWithMeta(cv, supportsMeta, ctorTypes);
+            Type[] ctorTypes = notMetaConstructor(objExpr, cv);
+            methodMeta(objExpr, cv);
+            methodWithMeta(objExpr, cv, supportsMeta, ctorTypes);
         }
 
         objExpr.emitStatics(cv);
         objExpr.emitMethods(cv);
 
         if (objExpr.keywordCallsites.count() > 0) {
-            methodSwapThunk(cv);
+            methodSwapThunk(objExpr, cv);
         }
 
         //end of class
@@ -80,7 +71,7 @@ public class ASMGen {
 //			getCompiledClass();
     }
 
-    private void createSourceMap(ClassVisitor cv) {
+    private static void createSourceMap(ClassVisitor cv) {
         String source = (String) Compiler.SOURCE.deref();
         int lineBefore = (Integer) Compiler.LINE_BEFORE.deref();
         int lineAfter = (Integer) Compiler.LINE_AFTER.deref() + 1;
@@ -107,7 +98,7 @@ public class ASMGen {
         }
     }
 
-    private void methodSwapThunk(ClassVisitor cv) {
+    private static void methodSwapThunk(ObjExpr objExpr, ClassVisitor cv) {
         Method meth = Method.getMethod("void swapThunk(int,clojure.lang.ILookupThunk)");
 
         GeneratorAdapter gen = new GeneratorAdapter(Opcodes.ACC_PUBLIC,
@@ -139,7 +130,7 @@ public class ASMGen {
         gen.endMethod();
     }
 
-    private void methodWithMeta(ClassVisitor cv, int supportsMeta, Type[] ctorTypes) {
+    private static void methodWithMeta(ObjExpr objExpr, ClassVisitor cv, int supportsMeta, Type[] ctorTypes) {
         //withMeta()
         Method meth = Method.getMethod("clojure.lang.IObj withMeta(clojure.lang.IPersistentMap)");
 
@@ -169,7 +160,7 @@ public class ASMGen {
         gen2.endMethod();
     }
 
-    private void methodMeta(ClassVisitor cv) {
+    private static void methodMeta(ObjExpr objExpr, ClassVisitor cv) {
         //meta()
         Method meth = Method.getMethod("clojure.lang.IPersistentMap meta()");
 
@@ -186,7 +177,7 @@ public class ASMGen {
         gen.endMethod();
     }
 
-    private Type[] notMetaConstructor(ClassVisitor cv) {
+    private static Type[] notMetaConstructor(ObjExpr objExpr, ClassVisitor cv) {
         //ctor that takes closed-overs but not meta
         Type[] ctorTypes = objExpr.ctorTypes();
         Type[] noMetaCtorTypes = new Type[ctorTypes.length - 1];
@@ -209,7 +200,7 @@ public class ASMGen {
         return ctorTypes;
     }
 
-    private void alternativeDropConstructor(ClassVisitor cv) {
+    private static void alternativeDropConstructor(ObjExpr objExpr, ClassVisitor cv) {
         if (objExpr.altCtorDrops > 0) {
             //ctor that takes closed-overs and inits base + fields
             Type[] ctorTypes = objExpr.ctorTypes();
@@ -235,7 +226,7 @@ public class ASMGen {
         }
     }
 
-    private int constructor(ClassVisitor cv) {
+    private static int constructor(ObjExpr objExpr, ClassVisitor cv, String superName) {
         //ctor that takes closed-overs and inits base + fields
         Method init = new Method("<init>", Type.VOID_TYPE, objExpr.ctorTypes());
         GeneratorAdapter ctorgen = new GeneratorAdapter(Opcodes.ACC_PUBLIC,
@@ -300,7 +291,7 @@ public class ASMGen {
         return a;
     }
 
-    private void instanceFields(ClassVisitor cv) {
+    private static void instanceFields(ObjExpr objExpr, ClassVisitor cv) {
 
         if (objExpr.supportsMeta()) {
             cv.visitField(Opcodes.ACC_FINAL, "__meta", Compiler.IPERSISTENTMAP_TYPE.getDescriptor(), null, null);
@@ -342,7 +333,7 @@ public class ASMGen {
 
     }
 
-    private void staticInit(ClassVisitor cv) {
+    private static void staticInit(ObjExpr objExpr, ClassVisitor cv) {
         //static init for constants, keywords and vars
         GeneratorAdapter clinitgen = new GeneratorAdapter(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC,
                 Method.getMethod("void <clinit> ()"),
@@ -391,7 +382,7 @@ for(int i=0;i<varCallsites.count();i++)
         clinitgen.endMethod();
     }
 
-    private void staticFields(ClassVisitor cv) {
+    private static void staticFields(ObjExpr objExpr, ClassVisitor cv) {
         //static fields for constants
         for (int i = 0; i < objExpr.constants.count(); i++) {
             cv.visitField(Opcodes.ACC_PUBLIC + Opcodes.ACC_FINAL
