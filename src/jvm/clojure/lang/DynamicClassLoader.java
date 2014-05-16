@@ -45,7 +45,7 @@ public Class defineClass(String name, byte[] bytes, Object srcForm){
 	Util.clearCache(rq, classCache);
     long startP = System.nanoTime();
 	Class c = defineClass(name, bytes, 0, bytes.length);
-    if(RT.booleanCast(RT.DEBUG_PERF.deref()))
+    if(System.getProperty("clojure.compile.debug-perf", "false").equals("true"))
         System.out.println("[PERF] " + ((System.nanoTime() - startP) / 1000000.) + " millis defineClass " + name);
     classCache.put(name, new SoftReference(c,rq));
     return c;

@@ -206,8 +206,6 @@ final static public Var USE_CONTEXT_CLASSLOADER =
 //boolean
 static final public Var UNCHECKED_MATH = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
                                                    Symbol.intern("*unchecked-math*"), Boolean.FALSE).setDynamic();
-static Object debugPerf = readTrueFalseUnknown(System.getProperty("clojure.compile.debug-perf", "true"));
-final static public Var DEBUG_PERF = Var.intern(CLOJURE_NS, Symbol.intern("*debug-perf*"),  debugPerf).setDynamic();
 
 //final static public Var CURRENT_MODULE = Var.intern(Symbol.intern("clojure.core", "current-module"),
 //                                                    Module.findOrCreateModule("clojure/user"));
@@ -448,11 +446,11 @@ static public void load(String scriptbase, boolean failIfNotFound) throws IOExce
 static void doInit() throws ClassNotFoundException, IOException{
 	load("clojure/core");
 
-	Var.pushThreadBindings(
-			RT.mapUniqueKeys(CURRENT_NS, CURRENT_NS.deref(),
-			       WARN_ON_REFLECTION, WARN_ON_REFLECTION.deref()
-					,RT.UNCHECKED_MATH, RT.UNCHECKED_MATH.deref()));
-	try {
+    Var.pushThreadBindings(
+            RT.mapUniqueKeys(CURRENT_NS, CURRENT_NS.deref(),
+                    WARN_ON_REFLECTION, WARN_ON_REFLECTION.deref(),
+                    RT.UNCHECKED_MATH, RT.UNCHECKED_MATH.deref()));
+    try {
 		Symbol USER = Symbol.intern("user");
 		Symbol CLOJURE = Symbol.intern("clojure.core");
 
