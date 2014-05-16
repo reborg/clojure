@@ -71,6 +71,7 @@ public class ASMGen {
 //			getCompiledClass();
     }
 
+
     private static void createSourceMap(ClassVisitor cv) {
         String source = (String) Compiler.SOURCE.deref();
         int lineBefore = (Integer) Compiler.LINE_BEFORE.deref();

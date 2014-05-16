@@ -206,6 +206,8 @@ final static public Var USE_CONTEXT_CLASSLOADER =
 //boolean
 static final public Var UNCHECKED_MATH = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
                                                    Symbol.intern("*unchecked-math*"), Boolean.FALSE).setDynamic();
+static Object debugPerf = readTrueFalseUnknown(System.getProperty("clojure.compile.debug-perf", "true"));
+final static public Var DEBUG_PERF = Var.intern(CLOJURE_NS, Symbol.intern("*debug-perf*"),  debugPerf).setDynamic();
 
 //final static public Var CURRENT_MODULE = Var.intern(Symbol.intern("clojure.core", "current-module"),
 //                                                    Module.findOrCreateModule("clojure/user"));
@@ -260,7 +262,7 @@ public static List<String> processCommandLine(String[] args){
 	return arglist;
 }
 
-// duck typing stderr plays nice with e.g. swank 
+// duck typing stderr plays nice with e.g. swank
 public static PrintWriter errPrintWriter(){
     Writer w = (Writer) ERR.deref();
     if (w instanceof PrintWriter) {
@@ -1214,7 +1216,7 @@ static public float floatCast(long x){
 static public float floatCast(double x){
 	if(x < -Float.MAX_VALUE || x > Float.MAX_VALUE)
 		throw new IllegalArgumentException("Value out of range for float: " + x);
-	
+
 	return (float) x;
 }
 
