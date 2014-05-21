@@ -410,10 +410,7 @@ public class ObjExpr implements Expr {
         if (isDeftype())
             return null;
         try {
-            long start = System.nanoTime();
             Object o = getCompiledClass().newInstance();
-            if(System.getProperty("clojure.compile.debug-perf", "false").equals("true"))
-                System.out.println("[PERF] " + ((System.nanoTime() - start) / 1000000.) + " millis newInstance of " + name);
             return o;
         } catch (Exception e) {
             throw Util.sneakyThrow(e);

@@ -8,6 +8,8 @@ import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.compiler.C;
 
+import java.util.HashMap;
+
 public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
     final static Type BOOLEAN_TYPE = Type.getType(Boolean.class);
     final static Type CHAR_TYPE = Type.getType(Character.class);
@@ -41,6 +43,17 @@ public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
     final static Method fromLongMethod = Method.getMethod("clojure.lang.Num from(long)");
     final static Method fromDoubleMethod = Method.getMethod("clojure.lang.Num from(double)");
 
+    public static class ClassKey {
+        Object o;
+        boolean stringOk;
+
+        public ClassKey(Object o, boolean stringOk) {
+            this.o = o;
+            this.stringOk = stringOk;
+        }
+    }
+
+    final static HashMap<ClassKey, Class> resolvedClasses = new HashMap<ClassKey, Class>();
 
     //*
     public static void emitBoxReturn(ObjExpr objx, GeneratorAdapter gen, Class returnType) {
@@ -193,6 +206,16 @@ public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
     }
 
     public static Class maybeClass(Object form, boolean stringOk) {
+        ClassKey key = new ClassKey(form, stringOk);
+        Class c = resolvedClasses.get(key);
+        if(c == null) {
+            c = resolveClass(form, stringOk);
+            resolvedClasses.put(key, c);
+        }
+        return c;
+    }
+
+    public static Class resolveClass(Object form, boolean stringOk) {
         if (form instanceof Class)
             return (Class) form;
         Class c = null;
