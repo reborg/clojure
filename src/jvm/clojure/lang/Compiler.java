@@ -18,6 +18,7 @@ import clojure.asm.*;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.analyzer.Analyzer;
+import clojure.lang.analyzer.Registry;
 import clojure.lang.compiler.*;
 import clojure.lang.compiler.expr.*;
 
@@ -299,14 +300,14 @@ public class Compiler implements Opcodes {
         if (sym.name.indexOf('.') > 0)
             return sym;
         if (sym.ns != null) {
-            Namespace ns = Analyzer.namespaceFor(sym);
+            Namespace ns = Registry.namespaceFor(sym);
             if (ns == null || ns.name.name == sym.ns)
                 return sym;
             return Symbol.intern(ns.name.name, sym.name);
         }
-        Object o = Analyzer.currentNS().getMapping(sym);
+        Object o = Registry.currentNS().getMapping(sym);
         if (o == null)
-            return Symbol.intern(Analyzer.currentNS().name.name, sym.name);
+            return Symbol.intern(Registry.currentNS().name.name, sym.name);
         else if (o instanceof Class)
             return Symbol.intern(null, ((Class) o).getName());
         else if (o instanceof Var) {
@@ -743,17 +744,6 @@ public class Compiler implements Opcodes {
         return protocolCallsites.count() - 1;
     }
 
-    private static void registerVarCallsite(Var v) {
-        if (!VAR_CALLSITES.isBound())
-            throw new IllegalAccessError("VAR_CALLSITES is not bound");
-
-        IPersistentCollection varCallsites = (IPersistentCollection) VAR_CALLSITES.deref();
-
-        varCallsites = varCallsites.cons(v);
-        VAR_CALLSITES.set(varCallsites);
-//	return varCallsites.count()-1;
-    }
-
     static ISeq fwdPath(PathNode p1) {
         ISeq ret = null;
         for (; p1 != null; p1 = p1.parent)
@@ -796,35 +786,6 @@ public class Compiler implements Opcodes {
             descriptor = "L" + destubClassName(descriptor.substring(1));
         return Type.getType(descriptor);
     }
-
-    static Object resolve(Symbol sym, boolean allowPrivate) {
-        return Analyzer.resolveIn(Analyzer.currentNS(), sym, allowPrivate);
-    }
-
-
-    static public Object maybeResolveIn(Namespace n, Symbol sym) {
-        //note - ns-qualified vars must already exist
-        if (sym.ns != null) {
-            Namespace ns = Analyzer.namespaceFor(n, sym);
-            if (ns == null)
-                return null;
-            Var v = ns.findInternedVar(Symbol.intern(sym.name));
-            if (v == null)
-                return null;
-            return v;
-        } else if (sym.name.indexOf('.') > 0 && !sym.name.endsWith(".")
-                || sym.name.charAt(0) == '[') {
-            return RT.classForName(sym.name);
-        } else if (sym.equals(NS))
-            return RT.NS_VAR;
-        else if (sym.equals(IN_NS))
-            return RT.IN_NS_VAR;
-        else {
-            Object o = n.getMapping(sym);
-            return o;
-        }
-    }
-
 
     public static Object loadFile(String file) throws IOException {
 //	File fo = new File(file);
@@ -1108,7 +1069,6 @@ public class Compiler implements Opcodes {
         }
         return ret;
     }
-
 
     public static Class primClass(Symbol sym) {
         if (sym == null)

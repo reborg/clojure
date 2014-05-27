@@ -2,7 +2,7 @@ package clojure.lang.compiler.expr;
 
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.*;
-import clojure.lang.analyzer.Analyzer;
+import clojure.lang.analyzer.Registry;
 import clojure.lang.compiler.C;
 
 public class TheVarExpr implements Expr {
@@ -33,7 +33,7 @@ public class TheVarExpr implements Expr {
     public static class Parser implements IParser {
         public Expr parse(C context, Object form) {
             Symbol sym = (Symbol) RT.second(form);
-            Var v = Analyzer.lookupVar(sym, false);
+            Var v = Registry.lookupVar(sym, false);
             if (v != null)
                 return new TheVarExpr(v);
             throw Util.runtimeException("Unable to resolve var: " + sym + " in this context");

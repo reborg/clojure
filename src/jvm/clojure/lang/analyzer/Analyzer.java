@@ -8,8 +8,6 @@ import clojure.lang.compiler.LocalBinding;
 import clojure.lang.compiler.ObjMethod;
 import clojure.lang.compiler.expr.*;
 
-import java.util.IdentityHashMap;
-
 public class Analyzer {
 
     public static int lineDeref() {
@@ -46,7 +44,7 @@ public class Analyzer {
             if (fclass == Symbol.class)
                 return analyzeSymbol((Symbol) form);
             else if (fclass == Keyword.class)
-                return registerKeyword((Keyword) form);
+                return Registry.registerKeyword((Keyword) form);
             else if (form instanceof Number)
                 return NumberExpr.parse((Number) form);
             else if (fclass == String.class)
@@ -88,9 +86,9 @@ public class Analyzer {
         if (op instanceof Symbol && referenceLocal((Symbol) op) != null)
             return null;
         if (op instanceof Symbol || op instanceof Var) {
-            Var v = (op instanceof Var) ? (Var) op : lookupVar((Symbol) op, false, false);
+            Var v = (op instanceof Var) ? (Var) op : Registry.lookupVar((Symbol) op, false, false);
             if (v != null && v.isMacro()) {
-                if (v.ns != currentNS() && !v.isPublic())
+                if (v.ns != Registry.currentNS() && !v.isPublic())
                     throw new IllegalStateException("var: " + v + " is not public");
                 return v;
             }
@@ -103,9 +101,9 @@ public class Analyzer {
         if (op instanceof Symbol && referenceLocal((Symbol) op) != null)
             return null;
         if (op instanceof Symbol || op instanceof Var) {
-            Var v = (op instanceof Var) ? (Var) op : lookupVar((Symbol) op, false);
+            Var v = (op instanceof Var) ? (Var) op : Registry.lookupVar((Symbol) op, false);
             if (v != null) {
-                if (v.ns != currentNS() && !v.isPublic())
+                if (v.ns != Registry.currentNS() && !v.isPublic())
                     throw new IllegalStateException("var: " + v + " is not public");
                 IFn ret = (IFn) RT.get(v.meta(), Compiler.inlineKey);
                 if (ret != null) {
@@ -119,7 +117,7 @@ public class Analyzer {
     }
 
     public static boolean namesStaticMember(Symbol sym) {
-        return sym.ns != null && namespaceFor(sym) == null;
+        return sym.ns != null && Registry.namespaceFor(sym) == null;
     }
 
     public static Object preserveTag(ISeq src, Object dst) {
@@ -226,35 +224,6 @@ public class Analyzer {
         }
     }
 
-    public static int registerConstant(Object o) {
-        if (!Compiler.CONSTANTS.isBound())
-            return -1;
-        PersistentVector v = (PersistentVector) Compiler.CONSTANTS.deref();
-        IdentityHashMap<Object, Integer> ids = (IdentityHashMap<Object, Integer>) Compiler.CONSTANT_IDS.deref();
-        Integer i = ids.get(o);
-        if (i != null)
-            return i;
-        Compiler.CONSTANTS.set(RT.conj(v, o));
-        ids.put(o, v.count());
-        return v.count();
-    }
-
-    private static KeywordExpr registerKeyword(Keyword keyword) {
-        if (!Compiler.KEYWORDS.isBound())
-            return new KeywordExpr(keyword);
-
-        IPersistentMap keywordsMap = (IPersistentMap) Compiler.KEYWORDS.deref();
-        Object id = RT.get(keywordsMap, keyword);
-        if (id == null) {
-            Compiler.KEYWORDS.set(RT.assoc(keywordsMap, keyword, registerConstant(keyword)));
-        }
-        return new KeywordExpr(keyword);
-//	KeywordExpr ke = (KeywordExpr) RT.get(keywordsMap, keyword);
-//	if(ke == null)
-//		KEYWORDS.set(RT.assoc(keywordsMap, keyword, ke = new KeywordExpr(keyword)));
-//	return ke;
-    }
-
     private static Expr analyzeSymbol(Symbol sym) {
         Symbol tag = tagOf(sym);
         if (sym.ns == null) //ns-qualified syms are always Vars
@@ -264,7 +233,7 @@ public class Analyzer {
                 return new LocalBindingExpr(b, tag);
             }
         } else {
-            if (namespaceFor(sym) == null) {
+            if (Registry.namespaceFor(sym) == null) {
                 Symbol nsSym = Symbol.intern(sym.ns);
                 Class c = HostExpr.maybeClass(nsSym, false);
                 if (c != null) {
@@ -278,14 +247,14 @@ public class Analyzer {
 //	Var v = lookupVar(sym, false);
 //	if(v != null)
 //		return new VarExpr(v, tag);
-        Object o = resolve(sym);
+        Object o = Registry.resolve(sym);
         if (o instanceof Var) {
             Var v = (Var) o;
             if (isMacro(v) != null)
                 throw Util.runtimeException("Can't take value of a macro: " + v);
             if (RT.booleanCast(RT.get(v.meta(), RT.CONST_KEY)))
                 return analyze(C.EXPRESSION, RT.list(Compiler.QUOTE, v.get()));
-            registerVar(v);
+            Registry.registerVar(v);
             return new VarExpr(v, tag);
         } else if (o instanceof Class)
             return new ConstantExpr(o);
@@ -294,116 +263,6 @@ public class Analyzer {
 
         throw Util.runtimeException("Unable to resolve symbol: " + sym + " in this context");
 
-    }
-
-    public static Object resolve(Symbol sym) {
-        return resolveIn(currentNS(), sym, false);
-    }
-
-    public static Namespace namespaceFor(Symbol sym) {
-        return namespaceFor(currentNS(), sym);
-    }
-
-    public static Namespace namespaceFor(Namespace inns, Symbol sym) {
-        //note, presumes non-nil sym.ns
-        // first check against currentNS' aliases...
-        Symbol nsSym = Symbol.intern(sym.ns);
-        Namespace ns = inns.lookupAlias(nsSym);
-        if (ns == null) {
-            // ...otherwise check the Namespaces map.
-            ns = Namespace.find(nsSym);
-        }
-        return ns;
-    }
-
-    static public Object resolveIn(Namespace n, Symbol sym, boolean allowPrivate) {
-        //note - ns-qualified vars must already exist
-        if (sym.ns != null) {
-            Namespace ns = namespaceFor(n, sym);
-            if (ns == null)
-                throw Util.runtimeException("No such namespace: " + sym.ns);
-
-            Var v = ns.findInternedVar(Symbol.intern(sym.name));
-            if (v == null)
-                throw Util.runtimeException("No such var: " + sym);
-            else if (v.ns != currentNS() && !v.isPublic() && !allowPrivate)
-                throw new IllegalStateException("var: " + sym + " is not public");
-            return v;
-        } else if (sym.name.indexOf('.') > 0 || sym.name.charAt(0) == '[') {
-            return RT.classForName(sym.name);
-        } else if (sym.equals(Compiler.NS))
-            return RT.NS_VAR;
-        else if (sym.equals(Compiler.IN_NS))
-            return RT.IN_NS_VAR;
-        else {
-            if (Util.equals(sym, Compiler.COMPILE_STUB_SYM.get()))
-                return Compiler.COMPILE_STUB_CLASS.get();
-            Object o = n.getMapping(sym);
-            if (o == null) {
-                if (RT.booleanCast(RT.ALLOW_UNRESOLVED_VARS.deref())) {
-                    return sym;
-                } else {
-                    throw Util.runtimeException("Unable to resolve symbol: " + sym + " in this context");
-                }
-            }
-            return o;
-        }
-    }
-
-    static Var lookupVar(Symbol sym, boolean internNew, boolean registerMacro) {
-        Var var = null;
-
-        //note - ns-qualified vars in other namespaces must already exist
-        if (sym.ns != null) {
-            Namespace ns = namespaceFor(sym);
-            if (ns == null)
-                return null;
-            //throw Util.runtimeException("No such namespace: " + sym.ns);
-            Symbol name = Symbol.intern(sym.name);
-            if (internNew && ns == currentNS())
-                var = currentNS().intern(name);
-            else
-                var = ns.findInternedVar(name);
-        } else if (sym.equals(Compiler.NS))
-            var = RT.NS_VAR;
-        else if (sym.equals(Compiler.IN_NS))
-            var = RT.IN_NS_VAR;
-        else {
-            //is it mapped?
-            Object o = currentNS().getMapping(sym);
-            if (o == null) {
-                //introduce a new var in the current ns
-                if (internNew)
-                    var = currentNS().intern(Symbol.intern(sym.name));
-            } else if (o instanceof Var) {
-                var = (Var) o;
-            } else {
-                throw Util.runtimeException("Expecting var, but " + sym + " is mapped to " + o);
-            }
-        }
-        if (var != null && (!var.isMacro() || registerMacro))
-            registerVar(var);
-        return var;
-    }
-
-    public static Var lookupVar(Symbol sym, boolean internNew) {
-        return lookupVar(sym, internNew, true);
-    }
-
-    private static void registerVar(Var var) {
-        if (!Compiler.VARS.isBound())
-            return;
-        IPersistentMap varsMap = (IPersistentMap) Compiler.VARS.deref();
-        Object id = RT.get(varsMap, var);
-        if (id == null) {
-            Compiler.VARS.set(RT.assoc(varsMap, var, registerConstant(var)));
-        }
-//	if(varsMap != null && RT.get(varsMap, var) == null)
-//		VARS.set(RT.assoc(varsMap, var, var));
-    }
-
-    public static Namespace currentNS() {
-        return (Namespace) RT.CURRENT_NS.deref();
     }
 
     static void closeOver(LocalBinding b, ObjMethod method) {

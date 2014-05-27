@@ -7,6 +7,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.analyzer.Analyzer;
+import clojure.lang.analyzer.Registry;
 import clojure.lang.compiler.C;
 
 import java.util.HashMap;
@@ -229,7 +230,7 @@ public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
                 if (sym.name.indexOf('.') > 0 || sym.name.charAt(0) == '[')
                     c = RT.classForName(sym.name);
                 else {
-                    Object o = Analyzer.currentNS().getMapping(sym);
+                    Object o = Registry.currentNS().getMapping(sym);
                     if (o instanceof Class)
                         c = (Class) o;
                     else {

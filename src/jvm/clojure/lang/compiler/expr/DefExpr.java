@@ -5,6 +5,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.analyzer.Analyzer;
+import clojure.lang.analyzer.Registry;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.CompilerException;
 
@@ -130,13 +131,13 @@ public class DefExpr implements Expr {
 			else if(!(RT.second(form) instanceof Symbol))
 					throw Util.runtimeException("First argument to def must be a Symbol");
 			Symbol sym = (Symbol) RT.second(form);
-			Var v = Analyzer.lookupVar(sym, true);
+			Var v = Registry.lookupVar(sym, true);
 			if(v == null)
 				throw Util.runtimeException("Can't refer to qualified var that doesn't exist");
-			if(!v.ns.equals(Analyzer.currentNS()))
+			if(!v.ns.equals(Registry.currentNS()))
 				{
 				if(sym.ns == null)
-					v = Analyzer.currentNS().intern(sym);
+					v = Registry.currentNS().intern(sym);
 //					throw Util.runtimeException("Name conflict, can't def " + sym + " because namespace: " + currentNS().name +
 //					                    " refers to:" + v);
 				else

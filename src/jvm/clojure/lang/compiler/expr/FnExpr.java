@@ -8,6 +8,7 @@ import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
 import clojure.lang.analyzer.Analyzer;
+import clojure.lang.analyzer.Registry;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.FnMethod;
 import clojure.lang.compiler.ObjMethod;
@@ -75,7 +76,7 @@ public class FnExpr extends ObjExpr {
         String basename = enclosingMethod != null ?
                 (enclosingMethod.objx.name + "$")
                 : //"clojure.fns." +
-                (Compiler.munge(Analyzer.currentNS().name.name) + "$");
+                (Compiler.munge(Registry.currentNS().name.name) + "$");
         if (RT.second(form) instanceof Symbol)
             name = ((Symbol) RT.second(form)).name;
         String simpleName = name != null ?

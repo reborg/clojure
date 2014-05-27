@@ -5,6 +5,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import clojure.lang.analyzer.Analyzer;
+import clojure.lang.analyzer.Registry;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.LocalBinding;
 import clojure.lang.compiler.NewInstanceMethod;
@@ -56,7 +57,7 @@ public class NewInstanceExpr extends ObjExpr {
             ObjMethod enclosingMethod = (ObjMethod) Compiler.METHOD.deref();
             String basename = enclosingMethod != null ?
                     (trimGenID(enclosingMethod.objx.name) + "$")
-                    : (Compiler.munge(Analyzer.currentNS().name.name) + "$");
+                    : (Compiler.munge(Registry.currentNS().name.name) + "$");
             String simpleName = "reify__" + RT.nextID();
             String classname = basename + simpleName;
 
@@ -115,7 +116,7 @@ public class NewInstanceExpr extends ObjExpr {
 
         PersistentVector interfaces = PersistentVector.EMPTY;
         for (ISeq s = RT.seq(interfaceSyms); s != null; s = s.next()) {
-            Class c = (Class) Analyzer.resolve((Symbol) s.first());
+            Class c = (Class) Registry.resolve((Symbol) s.first());
             if (!c.isInterface())
                 throw new IllegalArgumentException("only interfaces are supported, had: " + c.getName());
             interfaces = interfaces.cons(c);

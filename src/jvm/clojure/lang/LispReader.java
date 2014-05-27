@@ -11,6 +11,7 @@
 package clojure.lang;
 
 import clojure.lang.analyzer.Analyzer;
+import clojure.lang.analyzer.Registry;
 
 import java.io.IOException;
 import java.io.PushbackReader;
@@ -335,9 +336,9 @@ private static Object matchSymbol(String s){
 			Symbol ks = Symbol.intern(s.substring(2));
 			Namespace kns;
 			if(ks.ns != null)
-				kns = Analyzer.namespaceFor(ks);
+				kns = Registry.namespaceFor(ks);
 			else
-				kns = Analyzer.currentNS();
+				kns = Registry.currentNS();
 			//auto-resolving keyword
 			if (kns != null)
 				return Keyword.intern(kns.name.name,ks.name);
@@ -798,7 +799,7 @@ public static class SyntaxQuoteReader extends AFn{
 				{
 				Object maybeClass = null;
 				if(sym.ns != null)
-					maybeClass = Analyzer.currentNS().getMapping(
+					maybeClass = Registry.currentNS().getMapping(
 							Symbol.intern(null, sym.ns));
 				if(maybeClass instanceof Class)
 					{
@@ -1049,7 +1050,7 @@ public static class EvalReader extends AFn{
 				Object[] args = RT.toArray(RT.next(o));
 				return Reflector.invokeStaticMethod(fs.ns, fs.name, args);
 				}
-			Object v = Compiler.maybeResolveIn(Analyzer.currentNS(), fs);
+			Object v = Registry.maybeResolveIn(Registry.currentNS(), fs);
 			if(v instanceof Var)
 				{
 				return ((IFn) v).applyTo(RT.next(o));

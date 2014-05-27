@@ -4023,7 +4023,7 @@
     (ns-resolve ns nil sym))
   ([ns env sym]
     (when-not (contains? env sym)
-      (clojure.lang.Compiler/maybeResolveIn (the-ns ns) sym))))
+      (clojure.lang.analyzer.Registry/maybeResolveIn (the-ns ns) sym))))
 
 (defn resolve
   "same as (ns-resolve *ns* symbol) or (ns-resolve *ns* &env symbol)"
