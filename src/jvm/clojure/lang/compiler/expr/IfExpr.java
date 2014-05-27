@@ -5,6 +5,7 @@ import clojure.asm.Opcodes;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.PATHTYPE;
 import clojure.lang.compiler.PathNode;
@@ -115,24 +116,24 @@ public class IfExpr implements Expr, MaybePrimitiveExpr {
             else if (form.count() < 3)
                 throw Util.runtimeException("Too few arguments to if");
             PathNode branch = new PathNode(PATHTYPE.BRANCH, (PathNode) Compiler.CLEAR_PATH.get());
-            Expr testexpr = Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, RT.second(form));
+            Expr testexpr = Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, RT.second(form));
             Expr thenexpr, elseexpr;
             try {
                 Var.pushThreadBindings(
                         RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
-                thenexpr = Compiler.analyze(context, RT.third(form));
+                thenexpr = Analyzer.analyze(context, RT.third(form));
             } finally {
                 Var.popThreadBindings();
             }
             try {
                 Var.pushThreadBindings(
                         RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
-                elseexpr = Compiler.analyze(context, RT.fourth(form));
+                elseexpr = Analyzer.analyze(context, RT.fourth(form));
             } finally {
                 Var.popThreadBindings();
             }
-            return new IfExpr(Compiler.lineDeref(),
-                    Compiler.columnDeref(),
+            return new IfExpr(Analyzer.lineDeref(),
+                    Analyzer.columnDeref(),
                     testexpr,
                     thenexpr,
                     elseexpr);

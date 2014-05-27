@@ -4,6 +4,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class MapExpr implements Expr {
@@ -64,8 +65,8 @@ public class MapExpr implements Expr {
         IPersistentSet constantKeys = PersistentHashSet.EMPTY;
         for (ISeq s = RT.seq(form); s != null; s = s.next()) {
             IMapEntry e = (IMapEntry) s.first();
-            Expr k = Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, e.key());
-            Expr v = Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, e.val());
+            Expr k = Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, e.key());
+            Expr v = Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, e.val());
             keyvals = (IPersistentVector) keyvals.cons(k);
             keyvals = (IPersistentVector) keyvals.cons(v);
             if (k instanceof LiteralExpr) {

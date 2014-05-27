@@ -4,6 +4,7 @@ import clojure.asm.*;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.LocalBinding;
 import clojure.lang.compiler.NewInstanceMethod;
@@ -55,7 +56,7 @@ public class NewInstanceExpr extends ObjExpr {
             ObjMethod enclosingMethod = (ObjMethod) Compiler.METHOD.deref();
             String basename = enclosingMethod != null ?
                     (trimGenID(enclosingMethod.objx.name) + "$")
-                    : (Compiler.munge(Compiler.currentNS().name.name) + "$");
+                    : (Compiler.munge(Analyzer.currentNS().name.name) + "$");
             String simpleName = "reify__" + RT.nextID();
             String classname = basename + simpleName;
 
@@ -96,7 +97,7 @@ public class NewInstanceExpr extends ObjExpr {
             for (int i = 0; i < fieldSyms.count(); i++) {
                 Symbol sym = (Symbol) fieldSyms.nth(i);
                 LocalBinding lb = new LocalBinding(-1, sym, null,
-                        new MethodParamExpr(Compiler.tagClass(Compiler.tagOf(sym))), false, null);
+                        new MethodParamExpr(Compiler.tagClass(Analyzer.tagOf(sym))), false, null);
                 fmap = fmap.assoc(sym, lb);
                 closesvec[i * 2] = lb;
                 closesvec[i * 2 + 1] = lb;
@@ -114,7 +115,7 @@ public class NewInstanceExpr extends ObjExpr {
 
         PersistentVector interfaces = PersistentVector.EMPTY;
         for (ISeq s = RT.seq(interfaceSyms); s != null; s = s.next()) {
-            Class c = (Class) Compiler.resolve((Symbol) s.first());
+            Class c = (Class) Analyzer.resolve((Symbol) s.first());
             if (!c.isInterface())
                 throw new IllegalArgumentException("only interfaces are supported, had: " + c.getName());
             interfaces = interfaces.cons(c);
@@ -151,8 +152,8 @@ public class NewInstanceExpr extends ObjExpr {
             }
 
             //now (methodname [args] body)*
-            ret.line = Compiler.lineDeref();
-            ret.column = Compiler.columnDeref();
+            ret.line = Analyzer.lineDeref();
+            ret.column = Analyzer.columnDeref();
             IPersistentCollection methods = null;
             for (ISeq s = methodForms; s != null; s = RT.next(s)) {
                 NewInstanceMethod m = NewInstanceMethod.parse(ret, (ISeq) RT.first(s), thistag, overrideables);
@@ -293,7 +294,7 @@ public class NewInstanceExpr extends ObjExpr {
 
                 for (ISeq s = RT.seq(hintedFields); s != null; s = s.next(), i++) {
                     String bName = ((Symbol) s.first()).name;
-                    Class k = Compiler.tagClass(Compiler.tagOf(s.first()));
+                    Class k = Compiler.tagClass(Analyzer.tagOf(s.first()));
 
                     mv.visitVarInsn(Opcodes.ALOAD, 0);
                     mv.visitLdcInsn(bName);
@@ -319,7 +320,7 @@ public class NewInstanceExpr extends ObjExpr {
                 if (hintedFields.count() > 0)
                     for (i = 1; i <= fieldCount; i++) {
                         mv.visitVarInsn(Opcodes.ALOAD, i);
-                        Class k = Compiler.tagClass(Compiler.tagOf(hintedFields.nth(i - 1)));
+                        Class k = Compiler.tagClass(Analyzer.tagOf(hintedFields.nth(i - 1)));
                         if (k.isPrimitive()) {
                             String b = Type.getType(Compiler.boxClass(k)).getInternalName();
                             String p = Type.getType(k).getDescriptor();

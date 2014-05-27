@@ -8,6 +8,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.expr.BodyExpr;
 import clojure.lang.compiler.expr.HostExpr;
 import clojure.lang.compiler.expr.MethodParamExpr;
@@ -46,8 +47,8 @@ public class FnMethod extends ObjMethod {
     static public String primInterface(IPersistentVector arglist) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < arglist.count(); i++)
-            sb.append(classChar(Compiler.tagOf(arglist.nth(i))));
-        sb.append(classChar(Compiler.tagOf(arglist)));
+            sb.append(classChar(Analyzer.tagOf(arglist.nth(i))));
+        sb.append(classChar(Analyzer.tagOf(arglist)));
         String ret = sb.toString();
         boolean prim = ret.contains("L") || ret.contains("D");
         if (prim && arglist.count() > 4)
@@ -63,8 +64,8 @@ public class FnMethod extends ObjMethod {
         ISeq body = RT.next(form);
         try {
             FnMethod method = new FnMethod(objx, (ObjMethod) Compiler.METHOD.deref());
-            method.line = Compiler.lineDeref();
-            method.column = Compiler.columnDeref();
+            method.line = Analyzer.lineDeref();
+            method.column = Analyzer.columnDeref();
             //register as the current method and set up a new env frame
             PathNode pnode = (PathNode) Compiler.CLEAR_PATH.get();
             if (pnode == null)
@@ -84,7 +85,7 @@ public class FnMethod extends ObjMethod {
             if (method.prim != null)
                 method.prim = method.prim.replace('.', '/');
 
-            method.retClass = Compiler.tagClass(Compiler.tagOf(parms));
+            method.retClass = Compiler.tagClass(Analyzer.tagOf(parms));
             if (method.retClass.isPrimitive() && !(method.retClass == double.class || method.retClass == long.class))
                 throw new IllegalArgumentException("Only long and double primitives are supported");
 
@@ -114,7 +115,7 @@ public class FnMethod extends ObjMethod {
                     else
                         throw Util.runtimeException("Invalid parameter list");
                 } else {
-                    Class pc = Compiler.primClass(Compiler.tagClass(Compiler.tagOf(p)));
+                    Class pc = Compiler.primClass(Compiler.tagClass(Analyzer.tagOf(p)));
 //					if(pc.isPrimitive() && !isStatic)
 //						{
 //						pc = Object.class;
@@ -124,7 +125,7 @@ public class FnMethod extends ObjMethod {
                     if (pc.isPrimitive() && !(pc == double.class || pc == long.class))
                         throw new IllegalArgumentException("Only long and double primitives are supported: " + p);
 
-                    if (state == PSTATE.REST && Compiler.tagOf(p) != null)
+                    if (state == PSTATE.REST && Analyzer.tagOf(p) != null)
                         throw Util.runtimeException("& arg cannot have type hint");
                     if (state == PSTATE.REST && method.prim != null)
                         throw Util.runtimeException("fns taking primitives cannot be variadic");
@@ -135,7 +136,7 @@ public class FnMethod extends ObjMethod {
                     argclasses.add(pc);
                     LocalBinding lb = pc.isPrimitive() ?
                             Compiler.registerLocal(p, null, new MethodParamExpr(pc), true)
-                            : Compiler.registerLocal(p, state == PSTATE.REST ? Compiler.ISEQ : Compiler.tagOf(p), null, true);
+                            : Compiler.registerLocal(p, state == PSTATE.REST ? Compiler.ISEQ : Analyzer.tagOf(p), null, true);
                     argLocals = argLocals.cons(lb);
                     switch (state) {
                         case REQ:

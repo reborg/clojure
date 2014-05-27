@@ -10,6 +10,8 @@
 
 package clojure.lang;
 
+import clojure.lang.analyzer.Analyzer;
+
 import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.Reader;
@@ -333,9 +335,9 @@ private static Object matchSymbol(String s){
 			Symbol ks = Symbol.intern(s.substring(2));
 			Namespace kns;
 			if(ks.ns != null)
-				kns = Compiler.namespaceFor(ks);
+				kns = Analyzer.namespaceFor(ks);
 			else
-				kns = Compiler.currentNS();
+				kns = Analyzer.currentNS();
 			//auto-resolving keyword
 			if (kns != null)
 				return Keyword.intern(kns.name.name,ks.name);
@@ -765,7 +767,7 @@ public static class SyntaxQuoteReader extends AFn{
 
 	static Object syntaxQuote(Object form) {
 		Object ret;
-		if(Compiler.isSpecial(form))
+		if(Analyzer.isSpecial(form))
 			ret = RT.list(Compiler.QUOTE, form);
 		else if(form instanceof Symbol)
 			{
@@ -796,7 +798,7 @@ public static class SyntaxQuoteReader extends AFn{
 				{
 				Object maybeClass = null;
 				if(sym.ns != null)
-					maybeClass = Compiler.currentNS().getMapping(
+					maybeClass = Analyzer.currentNS().getMapping(
 							Symbol.intern(null, sym.ns));
 				if(maybeClass instanceof Class)
 					{
@@ -1042,12 +1044,12 @@ public static class EvalReader extends AFn{
 				Object[] args = RT.toArray(RT.next(o));
 				return Reflector.invokeConstructor(RT.classForName(fs.name.substring(0, fs.name.length() - 1)), args);
 				}
-			if(Compiler.namesStaticMember(fs))
+			if(Analyzer.namesStaticMember(fs))
 				{
 				Object[] args = RT.toArray(RT.next(o));
 				return Reflector.invokeStaticMethod(fs.ns, fs.name, args);
 				}
-			Object v = Compiler.maybeResolveIn(Compiler.currentNS(), fs);
+			Object v = Compiler.maybeResolveIn(Analyzer.currentNS(), fs);
 			if(v instanceof Var)
 				{
 				return ((IFn) v).applyTo(RT.next(o));

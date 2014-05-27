@@ -3,6 +3,7 @@ package clojure.lang.compiler.expr;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.RT;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class MonitorEnterExpr extends UntypedExpr {
@@ -24,7 +25,7 @@ public class MonitorEnterExpr extends UntypedExpr {
 
     public static class Parser implements IParser {
         public Expr parse(C context, Object form) {
-            return new MonitorEnterExpr(Compiler.analyze(C.EXPRESSION, RT.second(form)));
+            return new MonitorEnterExpr(Analyzer.analyze(C.EXPRESSION, RT.second(form)));
         }
     }
 }

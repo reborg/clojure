@@ -5,6 +5,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 import java.util.ArrayList;
@@ -109,14 +110,14 @@ public class StaticInvokeExpr implements Expr, MaybePrimitiveExpr {
         if (paramlist == null)
             throw new IllegalArgumentException("Invalid arity - can't call: " + v + " with " + argcount + " args");
 
-        Class retClass = Compiler.tagClass(Compiler.tagOf(paramlist));
+        Class retClass = Compiler.tagClass(Analyzer.tagOf(paramlist));
 
         ArrayList<Class> paramClasses = new ArrayList();
         ArrayList<Type> paramTypes = new ArrayList();
 
         if (variadic) {
             for (int i = 0; i < paramlist.count() - 2; i++) {
-                Class pc = Compiler.tagClass(Compiler.tagOf(paramlist.nth(i)));
+                Class pc = Compiler.tagClass(Analyzer.tagOf(paramlist.nth(i)));
                 paramClasses.add(pc);
                 paramTypes.add(Type.getType(pc));
             }
@@ -124,7 +125,7 @@ public class StaticInvokeExpr implements Expr, MaybePrimitiveExpr {
             paramTypes.add(Type.getType(ISeq.class));
         } else {
             for (int i = 0; i < argcount; i++) {
-                Class pc = Compiler.tagClass(Compiler.tagOf(paramlist.nth(i)));
+                Class pc = Compiler.tagClass(Analyzer.tagOf(paramlist.nth(i)));
                 paramClasses.add(pc);
                 paramTypes.add(Type.getType(pc));
             }
@@ -135,7 +136,7 @@ public class StaticInvokeExpr implements Expr, MaybePrimitiveExpr {
 
         PersistentVector argv = PersistentVector.EMPTY;
         for (ISeq s = RT.seq(args); s != null; s = s.next())
-            argv = argv.cons(Compiler.analyze(C.EXPRESSION, s.first()));
+            argv = argv.cons(Analyzer.analyze(C.EXPRESSION, s.first()));
 
         return new StaticInvokeExpr(target, retClass, paramClasses.toArray(new Class[paramClasses.size()]),
                 paramTypes.toArray(new Type[paramTypes.size()]), variadic, argv, tag);

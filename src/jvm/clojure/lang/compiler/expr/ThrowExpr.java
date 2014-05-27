@@ -5,6 +5,7 @@ import clojure.lang.Compiler;
 import clojure.lang.PersistentVector;
 import clojure.lang.RT;
 import clojure.lang.Util;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class ThrowExpr extends UntypedExpr {
@@ -28,8 +29,8 @@ public class ThrowExpr extends UntypedExpr {
     public static class Parser implements IParser {
         public Expr parse(C context, Object form) {
             if (context == C.EVAL)
-                return Compiler.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
-            return new ThrowExpr(Compiler.analyze(C.EXPRESSION, RT.second(form)));
+                return Analyzer.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
+            return new ThrowExpr(Analyzer.analyze(C.EXPRESSION, RT.second(form)));
         }
     }
 }

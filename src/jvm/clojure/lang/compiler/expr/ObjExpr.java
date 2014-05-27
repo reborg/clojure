@@ -5,6 +5,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.ASMGen;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.LocalBinding;
@@ -260,7 +261,7 @@ public class ObjExpr implements Expr {
             IPersistentVector fields = (IPersistentVector) Reflector.invokeStaticMethod(value.getClass(), "getBasis", new Object[]{});
             for (ISeq s = RT.seq(fields); s != null; s = s.next()) {
                 Symbol field = (Symbol) s.first();
-                Class k = Compiler.tagClass(Compiler.tagOf(field));
+                Class k = Compiler.tagClass(Analyzer.tagOf(field));
                 Object val = Reflector.getInstanceField(value, field.name);
                 emitValue(val, gen);
 

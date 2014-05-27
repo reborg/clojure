@@ -1,7 +1,7 @@
 package clojure.lang.compiler.expr;
 
 import clojure.asm.commons.GeneratorAdapter;
-import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class NumberExpr extends LiteralExpr implements MaybePrimitiveExpr{
@@ -10,7 +10,7 @@ public final int id;
 
 public NumberExpr(Number n){
     this.n = n;
-    this.id = Compiler.registerConstant(n);
+    this.id = Analyzer.registerConstant(n);
 }
 
 public Object val(){

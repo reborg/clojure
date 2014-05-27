@@ -3,6 +3,7 @@ package clojure.lang.compiler.expr;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class BodyExpr implements Expr, MaybePrimitiveExpr {
@@ -25,9 +26,9 @@ public class BodyExpr implements Expr, MaybePrimitiveExpr {
             for (; forms != null; forms = forms.next()) {
                 Expr e = (context != C.EVAL &&
                         (context == C.STATEMENT || forms.next() != null)) ?
-                        Compiler.analyze(C.STATEMENT, forms.first())
+                        Analyzer.analyze(C.STATEMENT, forms.first())
                         :
-                        Compiler.analyze(context, forms.first());
+                        Analyzer.analyze(context, forms.first());
                 exprs = exprs.cons(e);
             }
             if (exprs.count() == 0)

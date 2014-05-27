@@ -17,6 +17,7 @@ package clojure.lang;
 import clojure.asm.*;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.*;
 import clojure.lang.compiler.expr.*;
 
@@ -46,9 +47,9 @@ public class Compiler implements Opcodes {
     public static final Symbol DO = Symbol.intern("do");
     public static final Symbol FN = Symbol.intern("fn*");
     public static final Symbol FNONCE = (Symbol) Symbol.intern("fn*").withMeta(RT.map(Keyword.intern(null, "once"), RT.T));
-    static final Symbol QUOTE = Symbol.intern("quote");
+    public static final Symbol QUOTE = Symbol.intern("quote");
     static final Symbol THE_VAR = Symbol.intern("var");
-    static final Symbol DOT = Symbol.intern(".");
+    public static final Symbol DOT = Symbol.intern(".");
     static final Symbol ASSIGN = Symbol.intern("set!");
     //static final Symbol TRY_FINALLY = Symbol.intern("try-finally");
     static final Symbol TRY = Symbol.intern("try");
@@ -63,8 +64,8 @@ public class Compiler implements Opcodes {
     static final Symbol CASE = Symbol.intern("case*");
 
     //static final Symbol THISFN = Symbol.intern("thisfn");
-    static final Symbol CLASS = Symbol.intern("Class");
-    static final Symbol NEW = Symbol.intern("new");
+    public static final Symbol CLASS = Symbol.intern("Class");
+    public static final Symbol NEW = Symbol.intern("new");
     static final Symbol THIS = Symbol.intern("this");
     static final Symbol REIFY = Symbol.intern("reify*");
     //static final Symbol UNQUOTE = Symbol.intern("unquote");
@@ -73,13 +74,13 @@ public class Compiler implements Opcodes {
     static final Symbol LIST = Symbol.intern("clojure.core", "list");
     static final Symbol HASHMAP = Symbol.intern("clojure.core", "hash-map");
     static final Symbol VECTOR = Symbol.intern("clojure.core", "vector");
-    static final Symbol IDENTITY = Symbol.intern("clojure.core", "identity");
+    public static final Symbol IDENTITY = Symbol.intern("clojure.core", "identity");
 
     public static final Symbol _AMP_ = Symbol.intern("&");
     public static final Symbol ISEQ = Symbol.intern("clojure.lang.ISeq");
 
-    static final Keyword inlineKey = Keyword.intern(null, "inline");
-    static final Keyword inlineAritiesKey = Keyword.intern(null, "inline-arities");
+    public static final Keyword inlineKey = Keyword.intern(null, "inline");
+    public static final Keyword inlineAritiesKey = Keyword.intern(null, "inline-arities");
     static final Keyword staticKey = Keyword.intern(null, "static");
     public static final Keyword arglistsKey = Keyword.intern(null, "arglists");
     static final Symbol INVOKE_STATIC = Symbol.intern("invokeStatic");
@@ -92,8 +93,8 @@ public class Compiler implements Opcodes {
     static final Keyword onKey = Keyword.intern(null, "on");
     public static Keyword dynamicKey = Keyword.intern("dynamic");
 
-    static final Symbol NS = Symbol.intern("ns");
-    static final Symbol IN_NS = Symbol.intern("in-ns");
+    public static final Symbol NS = Symbol.intern("ns");
+    public static final Symbol IN_NS = Symbol.intern("in-ns");
 
 //static final Symbol IMPORT = Symbol.intern("import");
 //static final Symbol USE = Symbol.intern("use");
@@ -265,14 +266,6 @@ public class Compiler implements Opcodes {
     static final public Var LINE = Var.create(0).setDynamic();
     static final public Var COLUMN = Var.create(0).setDynamic();
 
-    public static int lineDeref() {
-        return ((Number) LINE.deref()).intValue();
-    }
-
-    public static int columnDeref() {
-        return ((Number) COLUMN.deref()).intValue();
-    }
-
     //Integer
     static final public Var LINE_BEFORE = Var.create(0).setDynamic();
     static final public Var COLUMN_BEFORE = Var.create(0).setDynamic();
@@ -301,23 +294,19 @@ public class Compiler implements Opcodes {
 
     static final public Class RECUR_CLASS = Recur.class;
 
-    static boolean isSpecial(Object sym) {
-        return specials.containsKey(sym);
-    }
-
     static Symbol resolveSymbol(Symbol sym) {
         //already qualified or classname?
         if (sym.name.indexOf('.') > 0)
             return sym;
         if (sym.ns != null) {
-            Namespace ns = namespaceFor(sym);
+            Namespace ns = Analyzer.namespaceFor(sym);
             if (ns == null || ns.name.name == sym.ns)
                 return sym;
             return Symbol.intern(ns.name.name, sym.name);
         }
-        Object o = currentNS().getMapping(sym);
+        Object o = Analyzer.currentNS().getMapping(sym);
         if (o == null)
-            return Symbol.intern(currentNS().name.name, sym.name);
+            return Symbol.intern(Analyzer.currentNS().name.name, sym.name);
         else if (o instanceof Class)
             return Symbol.intern(null, ((Class) o).getName());
         else if (o instanceof Var) {
@@ -674,213 +663,11 @@ public class Compiler implements Opcodes {
         return num;
     }
 
-    public static Expr analyze(C context, Object form) {
-        return analyze(context, form, null);
-    }
-
-    public static Expr analyze(C context, Object form, String name) {
-        //todo symbol macro expansion?
-        try {
-            if (form instanceof LazySeq) {
-                form = RT.seq(form);
-                if (form == null)
-                    form = PersistentList.EMPTY;
-            }
-            if (form == null)
-                return NIL_EXPR;
-            else if (form == Boolean.TRUE)
-                return TRUE_EXPR;
-            else if (form == Boolean.FALSE)
-                return FALSE_EXPR;
-            Class fclass = form.getClass();
-            if (fclass == Symbol.class)
-                return analyzeSymbol((Symbol) form);
-            else if (fclass == Keyword.class)
-                return registerKeyword((Keyword) form);
-            else if (form instanceof Number)
-                return NumberExpr.parse((Number) form);
-            else if (fclass == String.class)
-                return new StringExpr(((String) form).intern());
-//	else if(fclass == Character.class)
-//		return new CharExpr((Character) form);
-            else if (form instanceof IPersistentCollection && ((IPersistentCollection) form).count() == 0) {
-                Expr ret = new EmptyExpr(form);
-                if (RT.meta(form) != null)
-                    ret = new MetaExpr(ret, MapExpr
-                            .parse(context == C.EVAL ? context : C.EXPRESSION, ((IObj) form).meta()));
-                return ret;
-            } else if (form instanceof ISeq)
-                return analyzeSeq(context, (ISeq) form, name);
-            else if (form instanceof IPersistentVector)
-                return VectorExpr.parse(context, (IPersistentVector) form);
-            else if (form instanceof IRecord)
-                return new ConstantExpr(form);
-            else if (form instanceof IType)
-                return new ConstantExpr(form);
-            else if (form instanceof IPersistentMap)
-                return MapExpr.parse(context, (IPersistentMap) form);
-            else if (form instanceof IPersistentSet)
-                return SetExpr.parse(context, (IPersistentSet) form);
-
-//	else
-            //throw new UnsupportedOperationException();
-            return new ConstantExpr(form);
-        } catch (Throwable e) {
-            if (!(e instanceof CompilerException))
-                throw new CompilerException((String) SOURCE_PATH.deref(), lineDeref(), columnDeref(), e);
-            else
-                throw (CompilerException) e;
-        }
-    }
-
-    static public Var isMacro(Object op) {
-        //no local macros for now
-        if (op instanceof Symbol && referenceLocal((Symbol) op) != null)
-            return null;
-        if (op instanceof Symbol || op instanceof Var) {
-            Var v = (op instanceof Var) ? (Var) op : lookupVar((Symbol) op, false, false);
-            if (v != null && v.isMacro()) {
-                if (v.ns != currentNS() && !v.isPublic())
-                    throw new IllegalStateException("var: " + v + " is not public");
-                return v;
-            }
-        }
-        return null;
-    }
-
-    static public IFn isInline(Object op, int arity) {
-        //no local inlines for now
-        if (op instanceof Symbol && referenceLocal((Symbol) op) != null)
-            return null;
-        if (op instanceof Symbol || op instanceof Var) {
-            Var v = (op instanceof Var) ? (Var) op : lookupVar((Symbol) op, false);
-            if (v != null) {
-                if (v.ns != currentNS() && !v.isPublic())
-                    throw new IllegalStateException("var: " + v + " is not public");
-                IFn ret = (IFn) RT.get(v.meta(), inlineKey);
-                if (ret != null) {
-                    IFn arityPred = (IFn) RT.get(v.meta(), inlineAritiesKey);
-                    if (arityPred == null || RT.booleanCast(arityPred.invoke(arity)))
-                        return ret;
-                }
-            }
-        }
-        return null;
-    }
-
-    public static boolean namesStaticMember(Symbol sym) {
-        return sym.ns != null && namespaceFor(sym) == null;
-    }
-
-    public static Object preserveTag(ISeq src, Object dst) {
-        Symbol tag = tagOf(src);
-        if (tag != null && dst instanceof IObj) {
-            IPersistentMap meta = RT.meta(dst);
-            return ((IObj) dst).withMeta((IPersistentMap) RT.assoc(meta, RT.TAG_KEY, tag));
-        }
-        return dst;
-    }
-
-    public static Object macroexpand1(Object x) {
-        if (x instanceof ISeq) {
-            ISeq form = (ISeq) x;
-            Object op = RT.first(form);
-            if (isSpecial(op))
-                return x;
-            //macro expansion
-            Var v = isMacro(op);
-            if (v != null) {
-                try {
-                    return v.applyTo(RT.cons(form, RT.cons(LOCAL_ENV.get(), form.next())));
-                } catch (ArityException e) {
-                    // hide the 2 extra params for a macro
-                    throw new ArityException(e.actual - 2, e.name);
-                }
-            } else {
-                if (op instanceof Symbol) {
-                    Symbol sym = (Symbol) op;
-                    String sname = sym.name;
-                    //(.substring s 2 5) => (. s substring 2 5)
-                    if (sym.name.charAt(0) == '.') {
-                        if (RT.length(form) < 2)
-                            throw new IllegalArgumentException(
-                                    "Malformed member expression, expecting (.member target ...)");
-                        Symbol meth = Symbol.intern(sname.substring(1));
-                        Object target = RT.second(form);
-                        if (HostExpr.maybeClass(target, false) != null) {
-                            target = ((IObj) RT.list(IDENTITY, target)).withMeta(RT.map(RT.TAG_KEY, CLASS));
-                        }
-                        return preserveTag(form, RT.listStar(DOT, target, meth, form.next().next()));
-                    } else if (namesStaticMember(sym)) {
-                        Symbol target = Symbol.intern(sym.ns);
-                        Class c = HostExpr.maybeClass(target, false);
-                        if (c != null) {
-                            Symbol meth = Symbol.intern(sym.name);
-                            return preserveTag(form, RT.listStar(DOT, target, meth, form.next()));
-                        }
-                    } else {
-                        //(s.substring 2 5) => (. s substring 2 5)
-                        //also (package.class.name ...) (. package.class name ...)
-                        int idx = sname.lastIndexOf('.');
-//					if(idx > 0 && idx < sname.length() - 1)
-//						{
-//						Symbol target = Symbol.intern(sname.substring(0, idx));
-//						Symbol meth = Symbol.intern(sname.substring(idx + 1));
-//						return RT.listStar(DOT, target, meth, form.rest());
-//						}
-                        //(StringBuilder. "foo") => (new StringBuilder "foo")
-                        //else
-                        if (idx == sname.length() - 1)
-                            return RT.listStar(NEW, Symbol.intern(sname.substring(0, idx)), form.next());
-                    }
-                }
-            }
-        }
-        return x;
-    }
-
     static Object macroexpand(Object form) {
-        Object exf = macroexpand1(form);
+        Object exf = Analyzer.macroexpand1(form);
         if (exf != form)
             return macroexpand(exf);
         return form;
-    }
-
-    private static Expr analyzeSeq(C context, ISeq form, String name) {
-        Object line = lineDeref();
-        Object column = columnDeref();
-        if (RT.meta(form) != null && RT.meta(form).containsKey(RT.LINE_KEY))
-            line = RT.meta(form).valAt(RT.LINE_KEY);
-        if (RT.meta(form) != null && RT.meta(form).containsKey(RT.COLUMN_KEY))
-            column = RT.meta(form).valAt(RT.COLUMN_KEY);
-        Var.pushThreadBindings(
-                RT.map(LINE, line, COLUMN, column));
-        try {
-            Object me = macroexpand1(form);
-            if (me != form)
-                return analyze(context, me, name);
-
-            Object op = RT.first(form);
-            if (op == null)
-                throw new IllegalArgumentException("Can't call nil");
-            IFn inline = isInline(op, RT.count(RT.next(form)));
-            if (inline != null)
-                return analyze(context, preserveTag(form, inline.applyTo(RT.next(form))));
-            IParser p;
-            if (op.equals(FN))
-                return FnExpr.parse(context, form, name);
-            else if ((p = (IParser) specials.valAt(op)) != null)
-                return p.parse(context, form);
-            else
-                return InvokeExpr.parse(context, form);
-        } catch (Throwable e) {
-            if (!(e instanceof CompilerException))
-                throw new CompilerException((String) SOURCE_PATH.deref(), lineDeref(), columnDeref(), e);
-            else
-                throw (CompilerException) e;
-        } finally {
-            Var.popThreadBindings();
-        }
     }
 
     public static String errorMsg(String source, int line, int column, String s) {
@@ -899,8 +686,8 @@ public class Compiler implements Opcodes {
             createdLoader = true;
         }
         try {
-            Object line = lineDeref();
-            Object column = columnDeref();
+            Object line = Analyzer.lineDeref();
+            Object column = Analyzer.columnDeref();
             if (RT.meta(form) != null && RT.meta(form).containsKey(RT.LINE_KEY))
                 line = RT.meta(form).valAt(RT.LINE_KEY);
             if (RT.meta(form) != null && RT.meta(form).containsKey(RT.COLUMN_KEY))
@@ -917,12 +704,12 @@ public class Compiler implements Opcodes {
                         (form instanceof IPersistentCollection
                                 && !(RT.first(form) instanceof Symbol
                                 && ((Symbol) RT.first(form)).name.startsWith("def")))) {
-                    ObjExpr fexpr = (ObjExpr) analyze(C.EXPRESSION, RT.list(FN, PersistentVector.EMPTY, form),
+                    ObjExpr fexpr = (ObjExpr) Analyzer.analyze(C.EXPRESSION, RT.list(FN, PersistentVector.EMPTY, form),
                             "eval" + RT.nextID());
                     IFn fn = (IFn) fexpr.eval();
                     return fn.invoke();
                 } else {
-                    Expr expr = analyze(C.EVAL, form);
+                    Expr expr = Analyzer.analyze(C.EVAL, form);
                     return expr.eval();
                 }
             } finally {
@@ -932,35 +719,6 @@ public class Compiler implements Opcodes {
             if (createdLoader)
                 Var.popThreadBindings();
         }
-    }
-
-    public static int registerConstant(Object o) {
-        if (!CONSTANTS.isBound())
-            return -1;
-        PersistentVector v = (PersistentVector) CONSTANTS.deref();
-        IdentityHashMap<Object, Integer> ids = (IdentityHashMap<Object, Integer>) CONSTANT_IDS.deref();
-        Integer i = ids.get(o);
-        if (i != null)
-            return i;
-        CONSTANTS.set(RT.conj(v, o));
-        ids.put(o, v.count());
-        return v.count();
-    }
-
-    private static KeywordExpr registerKeyword(Keyword keyword) {
-        if (!KEYWORDS.isBound())
-            return new KeywordExpr(keyword);
-
-        IPersistentMap keywordsMap = (IPersistentMap) KEYWORDS.deref();
-        Object id = RT.get(keywordsMap, keyword);
-        if (id == null) {
-            KEYWORDS.set(RT.assoc(keywordsMap, keyword, registerConstant(keyword)));
-        }
-        return new KeywordExpr(keyword);
-//	KeywordExpr ke = (KeywordExpr) RT.get(keywordsMap, keyword);
-//	if(ke == null)
-//		KEYWORDS.set(RT.assoc(keywordsMap, keyword, ke = new KeywordExpr(keyword)));
-//	return ke;
     }
 
     public static int registerKeywordCallsite(Keyword keyword) {
@@ -1025,47 +783,6 @@ public class Compiler implements Opcodes {
             ADD_ANNOTATIONS.invoke(visitor, meta, i);
     }
 
-    private static Expr analyzeSymbol(Symbol sym) {
-        Symbol tag = tagOf(sym);
-        if (sym.ns == null) //ns-qualified syms are always Vars
-        {
-            LocalBinding b = referenceLocal(sym);
-            if (b != null) {
-                return new LocalBindingExpr(b, tag);
-            }
-        } else {
-            if (namespaceFor(sym) == null) {
-                Symbol nsSym = Symbol.intern(sym.ns);
-                Class c = HostExpr.maybeClass(nsSym, false);
-                if (c != null) {
-                    if (Reflector.getField(c, sym.name, true) != null)
-                        return new StaticFieldExpr(lineDeref(), columnDeref(), c, sym.name, tag);
-                    throw Util.runtimeException("Unable to find static field: " + sym.name + " in " + c);
-                }
-            }
-        }
-        //Var v = lookupVar(sym, false);
-//	Var v = lookupVar(sym, false);
-//	if(v != null)
-//		return new VarExpr(v, tag);
-        Object o = resolve(sym);
-        if (o instanceof Var) {
-            Var v = (Var) o;
-            if (isMacro(v) != null)
-                throw Util.runtimeException("Can't take value of a macro: " + v);
-            if (RT.booleanCast(RT.get(v.meta(), RT.CONST_KEY)))
-                return analyze(C.EXPRESSION, RT.list(QUOTE, v.get()));
-            registerVar(v);
-            return new VarExpr(v, tag);
-        } else if (o instanceof Class)
-            return new ConstantExpr(o);
-        else if (o instanceof Symbol)
-            return new UnresolvedVarExpr((Symbol) o);
-
-        throw Util.runtimeException("Unable to resolve symbol: " + sym + " in this context");
-
-    }
-
     public static String destubClassName(String className) {
         //skip over prefix + '.' or '/'
         if (className.startsWith(COMPILE_STUB_PREFIX))
@@ -1081,68 +798,14 @@ public class Compiler implements Opcodes {
     }
 
     static Object resolve(Symbol sym, boolean allowPrivate) {
-        return resolveIn(currentNS(), sym, allowPrivate);
-    }
-
-    public static Object resolve(Symbol sym) {
-        return resolveIn(currentNS(), sym, false);
-    }
-
-    static Namespace namespaceFor(Symbol sym) {
-        return namespaceFor(currentNS(), sym);
-    }
-
-    static Namespace namespaceFor(Namespace inns, Symbol sym) {
-        //note, presumes non-nil sym.ns
-        // first check against currentNS' aliases...
-        Symbol nsSym = Symbol.intern(sym.ns);
-        Namespace ns = inns.lookupAlias(nsSym);
-        if (ns == null) {
-            // ...otherwise check the Namespaces map.
-            ns = Namespace.find(nsSym);
-        }
-        return ns;
-    }
-
-    static public Object resolveIn(Namespace n, Symbol sym, boolean allowPrivate) {
-        //note - ns-qualified vars must already exist
-        if (sym.ns != null) {
-            Namespace ns = namespaceFor(n, sym);
-            if (ns == null)
-                throw Util.runtimeException("No such namespace: " + sym.ns);
-
-            Var v = ns.findInternedVar(Symbol.intern(sym.name));
-            if (v == null)
-                throw Util.runtimeException("No such var: " + sym);
-            else if (v.ns != currentNS() && !v.isPublic() && !allowPrivate)
-                throw new IllegalStateException("var: " + sym + " is not public");
-            return v;
-        } else if (sym.name.indexOf('.') > 0 || sym.name.charAt(0) == '[') {
-            return RT.classForName(sym.name);
-        } else if (sym.equals(NS))
-            return RT.NS_VAR;
-        else if (sym.equals(IN_NS))
-            return RT.IN_NS_VAR;
-        else {
-            if (Util.equals(sym, COMPILE_STUB_SYM.get()))
-                return COMPILE_STUB_CLASS.get();
-            Object o = n.getMapping(sym);
-            if (o == null) {
-                if (RT.booleanCast(RT.ALLOW_UNRESOLVED_VARS.deref())) {
-                    return sym;
-                } else {
-                    throw Util.runtimeException("Unable to resolve symbol: " + sym + " in this context");
-                }
-            }
-            return o;
-        }
+        return Analyzer.resolveIn(Analyzer.currentNS(), sym, allowPrivate);
     }
 
 
     static public Object maybeResolveIn(Namespace n, Symbol sym) {
         //note - ns-qualified vars must already exist
         if (sym.ns != null) {
-            Namespace ns = namespaceFor(n, sym);
+            Namespace ns = Analyzer.namespaceFor(n, sym);
             if (ns == null)
                 return null;
             Var v = ns.findInternedVar(Symbol.intern(sym.name));
@@ -1162,94 +825,6 @@ public class Compiler implements Opcodes {
         }
     }
 
-
-    static Var lookupVar(Symbol sym, boolean internNew, boolean registerMacro) {
-        Var var = null;
-
-        //note - ns-qualified vars in other namespaces must already exist
-        if (sym.ns != null) {
-            Namespace ns = namespaceFor(sym);
-            if (ns == null)
-                return null;
-            //throw Util.runtimeException("No such namespace: " + sym.ns);
-            Symbol name = Symbol.intern(sym.name);
-            if (internNew && ns == currentNS())
-                var = currentNS().intern(name);
-            else
-                var = ns.findInternedVar(name);
-        } else if (sym.equals(NS))
-            var = RT.NS_VAR;
-        else if (sym.equals(IN_NS))
-            var = RT.IN_NS_VAR;
-        else {
-            //is it mapped?
-            Object o = currentNS().getMapping(sym);
-            if (o == null) {
-                //introduce a new var in the current ns
-                if (internNew)
-                    var = currentNS().intern(Symbol.intern(sym.name));
-            } else if (o instanceof Var) {
-                var = (Var) o;
-            } else {
-                throw Util.runtimeException("Expecting var, but " + sym + " is mapped to " + o);
-            }
-        }
-        if (var != null && (!var.isMacro() || registerMacro))
-            registerVar(var);
-        return var;
-    }
-
-    public static Var lookupVar(Symbol sym, boolean internNew) {
-        return lookupVar(sym, internNew, true);
-    }
-
-    private static void registerVar(Var var) {
-        if (!VARS.isBound())
-            return;
-        IPersistentMap varsMap = (IPersistentMap) VARS.deref();
-        Object id = RT.get(varsMap, var);
-        if (id == null) {
-            VARS.set(RT.assoc(varsMap, var, registerConstant(var)));
-        }
-//	if(varsMap != null && RT.get(varsMap, var) == null)
-//		VARS.set(RT.assoc(varsMap, var, var));
-    }
-
-    public static Namespace currentNS() {
-        return (Namespace) RT.CURRENT_NS.deref();
-    }
-
-    static void closeOver(LocalBinding b, ObjMethod method) {
-        if (b != null && method != null) {
-            if (RT.get(method.locals, b) == null) {
-                method.objx.closes = (IPersistentMap) RT.assoc(method.objx.closes, b, b);
-                closeOver(b, method.parent);
-            } else if (IN_CATCH_FINALLY.deref() != null) {
-                method.localsUsedInCatchFinally = (PersistentHashSet) method.localsUsedInCatchFinally.cons(b.idx);
-            }
-        }
-    }
-
-
-    static LocalBinding referenceLocal(Symbol sym) {
-        if (!LOCAL_ENV.isBound())
-            return null;
-        LocalBinding b = (LocalBinding) RT.get(LOCAL_ENV.deref(), sym);
-        if (b != null) {
-            ObjMethod method = (ObjMethod) METHOD.deref();
-            closeOver(b, method);
-        }
-        return b;
-    }
-
-    public static Symbol tagOf(Object o) {
-        Object tag = RT.get(RT.meta(o), RT.TAG_KEY);
-        if (tag instanceof Symbol)
-            return (Symbol) tag;
-        else if (tag instanceof String)
-            return Symbol.intern(null, (String) tag);
-        return null;
-    }
 
     public static Object loadFile(String file) throws IOException {
 //	File fo = new File(file);
@@ -1357,8 +932,8 @@ public class Compiler implements Opcodes {
     }
 
     static void compile1(GeneratorAdapter gen, ObjExpr objx, Object form) {
-        Object line = lineDeref();
-        Object column = columnDeref();
+        Object line = Analyzer.lineDeref();
+        Object column = Analyzer.columnDeref();
         if (RT.meta(form) != null && RT.meta(form).containsKey(RT.LINE_KEY))
             line = RT.meta(form).valAt(RT.LINE_KEY);
         if (RT.meta(form) != null && RT.meta(form).containsKey(RT.COLUMN_KEY))
@@ -1374,7 +949,7 @@ public class Compiler implements Opcodes {
                     compile1(gen, objx, RT.first(s));
                 }
             } else {
-                Expr expr = analyze(C.EVAL, form);
+                Expr expr = Analyzer.analyze(C.EVAL, form);
                 objx.keywords = (IPersistentMap) KEYWORDS.deref();
                 objx.vars = (IPersistentMap) VARS.deref();
                 objx.constants = (PersistentVector) CONSTANTS.deref();

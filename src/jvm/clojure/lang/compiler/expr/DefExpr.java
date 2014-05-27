@@ -4,6 +4,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.CompilerException;
 
@@ -129,13 +130,13 @@ public class DefExpr implements Expr {
 			else if(!(RT.second(form) instanceof Symbol))
 					throw Util.runtimeException("First argument to def must be a Symbol");
 			Symbol sym = (Symbol) RT.second(form);
-			Var v = Compiler.lookupVar(sym, true);
+			Var v = Analyzer.lookupVar(sym, true);
 			if(v == null)
 				throw Util.runtimeException("Can't refer to qualified var that doesn't exist");
-			if(!v.ns.equals(Compiler.currentNS()))
+			if(!v.ns.equals(Analyzer.currentNS()))
 				{
 				if(sym.ns == null)
-					v = Compiler.currentNS().intern(sym);
+					v = Analyzer.currentNS().intern(sym);
 //					throw Util.runtimeException("Name conflict, can't def " + sym + " because namespace: " + currentNS().name +
 //					                    " refers to:" + v);
 				else
@@ -174,9 +175,9 @@ public class DefExpr implements Expr {
 //					.without(Keyword.intern(null, "added"))
 //					.without(Keyword.intern(null, "static"));
             mm = (IPersistentMap) Compiler.elideMeta(mm);
-			Expr meta = mm.count()==0 ? null: Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, mm);
-			return new DefExpr((String) Compiler.SOURCE.deref(), Compiler.lineDeref(), Compiler.columnDeref(),
-			                   v, Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, RT.third(form), v.sym.name),
+			Expr meta = mm.count()==0 ? null: Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, mm);
+			return new DefExpr((String) Compiler.SOURCE.deref(), Analyzer.lineDeref(), Analyzer.columnDeref(),
+			                   v, Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, RT.third(form), v.sym.name),
 			                   meta, RT.count(form) == 3, isDynamic);
 		}
 	}

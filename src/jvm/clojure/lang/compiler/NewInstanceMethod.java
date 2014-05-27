@@ -8,6 +8,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.expr.BodyExpr;
 import clojure.lang.compiler.expr.MethodParamExpr;
 import clojure.lang.compiler.expr.ObjExpr;
@@ -65,8 +66,8 @@ public class NewInstanceMethod extends ObjMethod {
         parms = RT.subvec(parms, 1, parms.count());
         ISeq body = RT.next(RT.next(form));
         try {
-            method.line = Compiler.lineDeref();
-            method.column = Compiler.columnDeref();
+            method.line = Analyzer.lineDeref();
+            method.column = Analyzer.columnDeref();
             //register as the current method and set up a new env frame
             PathNode pnode = new PathNode(PATHTYPE.PATH, (PathNode) Compiler.CLEAR_PATH.get());
             Var.pushThreadBindings(
@@ -87,9 +88,9 @@ public class NewInstanceMethod extends ObjMethod {
                 Compiler.getAndIncLocalNum();
 
             PersistentVector argLocals = PersistentVector.EMPTY;
-            method.retClass = Compiler.tagClass(Compiler.tagOf(name));
+            method.retClass = Compiler.tagClass(Analyzer.tagOf(name));
             method.argTypes = new Type[parms.count()];
-            boolean hinted = Compiler.tagOf(name) != null;
+            boolean hinted = Analyzer.tagOf(name) != null;
             Class[] pclasses = new Class[parms.count()];
             Symbol[] psyms = new Symbol[parms.count()];
 
@@ -97,7 +98,7 @@ public class NewInstanceMethod extends ObjMethod {
                 if (!(parms.nth(i) instanceof Symbol))
                     throw new IllegalArgumentException("params must be Symbols");
                 Symbol p = (Symbol) parms.nth(i);
-                Object tag = Compiler.tagOf(p);
+                Object tag = Analyzer.tagOf(p);
                 if (tag != null)
                     hinted = true;
                 if (p.getNamespace() != null)

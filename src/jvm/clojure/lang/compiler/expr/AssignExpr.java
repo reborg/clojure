@@ -2,7 +2,7 @@ package clojure.lang.compiler.expr;
 
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.*;
-import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class AssignExpr implements Expr{
@@ -35,10 +35,10 @@ public static class Parser implements IParser {
         ISeq form = (ISeq) frm;
         if(RT.length(form) != 3)
             throw new IllegalArgumentException("Malformed assignment, expecting (set! target val)");
-        Expr target = Compiler.analyze(C.EXPRESSION, RT.second(form));
+        Expr target = Analyzer.analyze(C.EXPRESSION, RT.second(form));
         if(!(target instanceof AssignableExpr))
             throw new IllegalArgumentException("Invalid assignment target");
-        return new AssignExpr((AssignableExpr) target, Compiler.analyze(C.EXPRESSION, RT.third(form)));
+        return new AssignExpr((AssignableExpr) target, Analyzer.analyze(C.EXPRESSION, RT.third(form)));
     }
 }
 }

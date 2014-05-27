@@ -6,6 +6,7 @@ import clojure.asm.Type;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.*;
 
 import java.util.HashMap;
@@ -37,7 +38,7 @@ public static class Parser implements IParser {
 
         if(context == C.EVAL
            || (context == C.EXPRESSION && isLoop))
-            return Compiler.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
+            return Analyzer.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
 
         ObjMethod method = (ObjMethod) Compiler.METHOD.deref();
         IPersistentMap backupMethodLocals = method.locals;
@@ -75,7 +76,7 @@ public static class Parser implements IParser {
                     Symbol sym = (Symbol) bindings.nth(i);
                     if(sym.getNamespace() != null)
                         throw Util.runtimeException("Can't let qualified name: " + sym);
-                    Expr init = Compiler.analyze(C.EXPRESSION, bindings.nth(i + 1), sym.name);
+                    Expr init = Analyzer.analyze(C.EXPRESSION, bindings.nth(i + 1), sym.name);
                     if(isLoop)
                         {
                         if(recurMismatches != null && RT.booleanCast(recurMismatches.nth(i/2)))
@@ -100,7 +101,7 @@ public static class Parser implements IParser {
                                        Compiler.NO_RECUR, null));
 
                             }
-                        LocalBinding lb = Compiler.registerLocal(sym, Compiler.tagOf(sym), init, false);
+                        LocalBinding lb = Compiler.registerLocal(sym, Analyzer.tagOf(sym), init, false);
                         BindingInit bi = new BindingInit(lb, init);
                         bindingInits = bindingInits.cons(bi);
                         if(isLoop)

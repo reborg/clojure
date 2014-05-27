@@ -6,6 +6,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 import java.util.HashMap;
@@ -159,14 +160,14 @@ public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
                 throw new IllegalArgumentException("Malformed member expression, expecting (. target member ...)");
             //determine static or instance
             //static target must be symbol, either fully.qualified.Classname or Classname that has been imported
-            int line = Compiler.lineDeref();
-            int column = Compiler.columnDeref();
+            int line = Analyzer.lineDeref();
+            int column = Analyzer.columnDeref();
             String source = (String) Compiler.SOURCE.deref();
             Class c = maybeClass(RT.second(form), false);
             //at this point c will be non-null if static
             Expr instance = null;
             if (c == null)
-                instance = Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, RT.second(form));
+                instance = Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, RT.second(form));
 
             boolean maybeField = RT.length(form) == 3 && (RT.third(form) instanceof Symbol);
 
@@ -183,7 +184,7 @@ public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
                 Symbol sym = (((Symbol) RT.third(form)).name.charAt(0) == '-') ?
                         Symbol.intern(((Symbol) RT.third(form)).name.substring(1))
                         : (Symbol) RT.third(form);
-                Symbol tag = Compiler.tagOf(form);
+                Symbol tag = Analyzer.tagOf(form);
                 if (c != null) {
                     return new StaticFieldExpr(line, column, c, Compiler.munge(sym.name), tag);
                 } else
@@ -193,10 +194,10 @@ public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
                 if (!(RT.first(call) instanceof Symbol))
                     throw new IllegalArgumentException("Malformed member expression");
                 Symbol sym = (Symbol) RT.first(call);
-                Symbol tag = Compiler.tagOf(form);
+                Symbol tag = Analyzer.tagOf(form);
                 PersistentVector args = PersistentVector.EMPTY;
                 for (ISeq s = RT.next(call); s != null; s = s.next())
-                    args = args.cons(Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, s.first()));
+                    args = args.cons(Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, s.first()));
                 if (c != null)
                     return new StaticMethodExpr(source, line, column, tag, c, Compiler.munge(sym.name), args);
                 else
@@ -228,7 +229,7 @@ public abstract class HostExpr implements Expr, MaybePrimitiveExpr {
                 if (sym.name.indexOf('.') > 0 || sym.name.charAt(0) == '[')
                     c = RT.classForName(sym.name);
                 else {
-                    Object o = Compiler.currentNS().getMapping(sym);
+                    Object o = Analyzer.currentNS().getMapping(sym);
                     if (o instanceof Class)
                         c = (Class) o;
                     else {

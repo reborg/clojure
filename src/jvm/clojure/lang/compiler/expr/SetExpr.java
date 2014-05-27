@@ -4,6 +4,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class SetExpr implements Expr {
@@ -44,7 +45,7 @@ public class SetExpr implements Expr {
 
         for (ISeq s = RT.seq(form); s != null; s = s.next()) {
             Object e = s.first();
-            Expr expr = Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, e);
+            Expr expr = Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, e);
             keys = (IPersistentVector) keys.cons(expr);
             if (!(expr instanceof LiteralExpr))
                 constant = false;

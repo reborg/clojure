@@ -6,6 +6,7 @@ import clojure.asm.Type;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.BindingInit;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.LocalBinding;
@@ -33,7 +34,7 @@ public class LetFnExpr implements Expr {
             ISeq body = RT.next(RT.next(form));
 
             if (context == C.EVAL)
-                return Compiler.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
+                return Analyzer.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
 
             IPersistentMap dynamicBindings = RT.map(Compiler.LOCAL_ENV, Compiler.LOCAL_ENV.deref(),
                     Compiler.NEXT_LOCAL_NUM, Compiler.NEXT_LOCAL_NUM.deref());
@@ -50,14 +51,14 @@ public class LetFnExpr implements Expr {
                     Symbol sym = (Symbol) bindings.nth(i);
                     if (sym.getNamespace() != null)
                         throw Util.runtimeException("Can't let qualified name: " + sym);
-                    LocalBinding lb = Compiler.registerLocal(sym, Compiler.tagOf(sym), null, false);
+                    LocalBinding lb = Compiler.registerLocal(sym, Analyzer.tagOf(sym), null, false);
                     lb.canBeCleared = false;
                     lbs = lbs.cons(lb);
                 }
                 PersistentVector bindingInits = PersistentVector.EMPTY;
                 for (int i = 0; i < bindings.count(); i += 2) {
                     Symbol sym = (Symbol) bindings.nth(i);
-                    Expr init = Compiler.analyze(C.EXPRESSION, bindings.nth(i + 1), sym.name);
+                    Expr init = Analyzer.analyze(C.EXPRESSION, bindings.nth(i + 1), sym.name);
                     LocalBinding lb = (LocalBinding) lbs.nth(i / 2);
                     lb.init = init;
                     BindingInit bi = new BindingInit(lb, init);

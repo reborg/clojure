@@ -5,6 +5,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.ObjMethod;
 
@@ -101,8 +102,8 @@ public class NewExpr implements Expr {
 
     public static class Parser implements IParser {
         public Expr parse(C context, Object frm) {
-            int line = Compiler.lineDeref();
-            int column = Compiler.columnDeref();
+            int line = Analyzer.lineDeref();
+            int column = Analyzer.columnDeref();
             ISeq form = (ISeq) frm;
             //(new Classname args...)
             if (form.count() < 2)
@@ -112,7 +113,7 @@ public class NewExpr implements Expr {
                 throw new IllegalArgumentException("Unable to resolve classname: " + RT.second(form));
             PersistentVector args = PersistentVector.EMPTY;
             for (ISeq s = RT.next(RT.next(form)); s != null; s = s.next())
-                args = args.cons(Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, s.first()));
+                args = args.cons(Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, s.first()));
             return new NewExpr(c, args, line, column);
         }
     }

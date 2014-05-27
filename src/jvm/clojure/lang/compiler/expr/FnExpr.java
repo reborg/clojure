@@ -7,6 +7,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.FnMethod;
 import clojure.lang.compiler.ObjMethod;
@@ -63,7 +64,7 @@ public class FnExpr extends ObjExpr {
 
     public static Expr parse(C context, ISeq form, String name) {
         ISeq origForm = form;
-        FnExpr fn = new FnExpr(Compiler.tagOf(form));
+        FnExpr fn = new FnExpr(Analyzer.tagOf(form));
         fn.src = form;
         ObjMethod enclosingMethod = (ObjMethod) Compiler.METHOD.deref();
         if (((IMeta) form.first()).meta() != null) {
@@ -74,7 +75,7 @@ public class FnExpr extends ObjExpr {
         String basename = enclosingMethod != null ?
                 (enclosingMethod.objx.name + "$")
                 : //"clojure.fns." +
-                (Compiler.munge(Compiler.currentNS().name.name) + "$");
+                (Compiler.munge(Analyzer.currentNS().name.name) + "$");
         if (RT.second(form) instanceof Symbol)
             name = ((Symbol) RT.second(form)).name;
         String simpleName = name != null ?
@@ -110,8 +111,8 @@ public class FnExpr extends ObjExpr {
             //turn former into latter
             if (RT.second(form) instanceof IPersistentVector)
                 form = RT.list(Compiler.FN, RT.next(form));
-            fn.line = Compiler.lineDeref();
-            fn.column = Compiler.columnDeref();
+            fn.line = Analyzer.lineDeref();
+            fn.column = Analyzer.columnDeref();
             FnMethod[] methodArray = new FnMethod[Compiler.MAX_POSITIONAL_ARITY + 1];
             FnMethod variadicMethod = null;
             for (ISeq s = RT.next(form); s != null; s = RT.next(s)) {

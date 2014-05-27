@@ -7,6 +7,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.CompilerException;
 import clojure.lang.compiler.FnMethod;
@@ -72,7 +73,7 @@ public class InvokeExpr implements Expr {
                 APersistentVector sig = (APersistentVector) s.first();
                 int restOffset = sig.indexOf(Compiler._AMP_);
                 if (args.count() == sig.count() || (restOffset > -1 && args.count() >= restOffset)) {
-                    sigTag = Compiler.tagOf(sig);
+                    sigTag = Analyzer.tagOf(sig);
                     break;
                 }
             }
@@ -188,13 +189,13 @@ public class InvokeExpr implements Expr {
     static public Expr parse(C context, ISeq form) {
         if (context != C.EVAL)
             context = C.EXPRESSION;
-        Expr fexpr = Compiler.analyze(context, form.first());
+        Expr fexpr = Analyzer.analyze(context, form.first());
         if (fexpr instanceof VarExpr && ((VarExpr) fexpr).var.equals(Compiler.INSTANCE) && RT.count(form) == 3) {
-            Expr sexpr = Compiler.analyze(C.EXPRESSION, RT.second(form));
+            Expr sexpr = Analyzer.analyze(C.EXPRESSION, RT.second(form));
             if (sexpr instanceof ConstantExpr) {
                 Object val = ((ConstantExpr) sexpr).val();
                 if (val instanceof Class) {
-                    return new InstanceOfExpr((Class) val, Compiler.analyze(context, RT.third(form)));
+                    return new InstanceOfExpr((Class) val, Analyzer.analyze(context, RT.third(form)));
                 }
             }
         }
@@ -217,7 +218,7 @@ public class InvokeExpr implements Expr {
                 if (args.count() == arity) {
                     String primc = FnMethod.primInterface(args);
                     if (primc != null)
-                        return Compiler.analyze(context,
+                        return Analyzer.analyze(context,
                                 RT.listStar(Symbol.intern(".invokePrim"),
                                         ((Symbol) form.first()).withMeta(RT.map(RT.TAG_KEY, Symbol.intern(primc))),
                                         form.next()));
@@ -228,18 +229,18 @@ public class InvokeExpr implements Expr {
 
         if (fexpr instanceof KeywordExpr && RT.count(form) == 2 && Compiler.KEYWORD_CALLSITES.isBound()) {
 //			fexpr = new ConstantExpr(new KeywordCallSite(((KeywordExpr)fexpr).k));
-            Expr target = Compiler.analyze(context, RT.second(form));
-            return new KeywordInvokeExpr((String) Compiler.SOURCE.deref(), Compiler.lineDeref(), Compiler.columnDeref(), Compiler.tagOf(form),
+            Expr target = Analyzer.analyze(context, RT.second(form));
+            return new KeywordInvokeExpr((String) Compiler.SOURCE.deref(), Analyzer.lineDeref(), Analyzer.columnDeref(), Analyzer.tagOf(form),
                     (KeywordExpr) fexpr, target);
         }
         PersistentVector args = PersistentVector.EMPTY;
         for (ISeq s = RT.seq(form.next()); s != null; s = s.next()) {
-            args = args.cons(Compiler.analyze(context, s.first()));
+            args = args.cons(Analyzer.analyze(context, s.first()));
         }
 //		if(args.count() > MAX_POSITIONAL_ARITY)
 //			throw new IllegalArgumentException(
 //					String.format("No more than %d args supported", MAX_POSITIONAL_ARITY));
 
-        return new InvokeExpr((String) Compiler.SOURCE.deref(), Compiler.lineDeref(), Compiler.columnDeref(), Compiler.tagOf(form), fexpr, args);
+        return new InvokeExpr((String) Compiler.SOURCE.deref(), Analyzer.lineDeref(), Analyzer.columnDeref(), Analyzer.tagOf(form), fexpr, args);
     }
 }

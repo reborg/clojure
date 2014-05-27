@@ -6,6 +6,7 @@ import clojure.lang.Compiler;
 import clojure.lang.IObj;
 import clojure.lang.IPersistentVector;
 import clojure.lang.PersistentVector;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 public class VectorExpr implements Expr {
@@ -44,7 +45,7 @@ public class VectorExpr implements Expr {
 
         IPersistentVector args = PersistentVector.EMPTY;
         for (int i = 0; i < form.count(); i++) {
-            Expr v = Compiler.analyze(context == C.EVAL ? context : C.EXPRESSION, form.nth(i));
+            Expr v = Analyzer.analyze(context == C.EVAL ? context : C.EXPRESSION, form.nth(i));
             args = (IPersistentVector) args.cons(v);
             if (!(v instanceof LiteralExpr))
                 constant = false;

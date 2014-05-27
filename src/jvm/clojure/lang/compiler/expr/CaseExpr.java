@@ -7,6 +7,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.PATHTYPE;
 import clojure.lang.compiler.PathNode;
@@ -243,7 +244,7 @@ public class CaseExpr implements Expr, MaybePrimitiveExpr {
         public Expr parse(C context, Object frm) {
             ISeq form = (ISeq) frm;
             if (context == C.EVAL)
-                return Compiler.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
+                return Analyzer.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
             PersistentVector args = PersistentVector.create(form.next());
 
             Object exprForm = args.nth(0);
@@ -259,7 +260,7 @@ public class CaseExpr implements Expr, MaybePrimitiveExpr {
             int low = ((Number) RT.first(keys)).intValue();
             int high = ((Number) RT.nth(keys, RT.count(keys) - 1)).intValue();
 
-            LocalBindingExpr testexpr = (LocalBindingExpr) Compiler.analyze(C.EXPRESSION, exprForm);
+            LocalBindingExpr testexpr = (LocalBindingExpr) Analyzer.analyze(C.EXPRESSION, exprForm);
             testexpr.shouldClear = false;
 
             SortedMap<Integer, Expr> tests = new TreeMap();
@@ -280,7 +281,7 @@ public class CaseExpr implements Expr, MaybePrimitiveExpr {
                 try {
                     Var.pushThreadBindings(
                             RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
-                    thenExpr = Compiler.analyze(context, RT.second(pair));
+                    thenExpr = Analyzer.analyze(context, RT.second(pair));
                 } finally {
                     Var.popThreadBindings();
                 }
@@ -291,7 +292,7 @@ public class CaseExpr implements Expr, MaybePrimitiveExpr {
             try {
                 Var.pushThreadBindings(
                         RT.map(Compiler.CLEAR_PATH, new PathNode(PATHTYPE.PATH, branch)));
-                defaultExpr = Compiler.analyze(context, args.nth(3));
+                defaultExpr = Analyzer.analyze(context, args.nth(3));
             } finally {
                 Var.popThreadBindings();
             }

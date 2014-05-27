@@ -3,6 +3,7 @@ package clojure.lang.compiler.expr;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 
 import java.lang.reflect.Modifier;
@@ -15,7 +16,7 @@ public class ConstantExpr extends LiteralExpr {
 
     public ConstantExpr(Object v) {
         this.v = v;
-        this.id = Compiler.registerConstant(v);
+        this.id = Analyzer.registerConstant(v);
 //		this.id = RT.nextID();
 //		DynamicClassLoader loader = (DynamicClassLoader) LOADER.get();
 //		loader.registerQuotedVal(id, v);

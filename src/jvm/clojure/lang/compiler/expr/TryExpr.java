@@ -5,6 +5,7 @@ import clojure.asm.Opcodes;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.LocalBinding;
 
@@ -125,7 +126,7 @@ public class TryExpr implements Expr {
             ISeq form = (ISeq) frm;
 //			if(context == C.EVAL || context == C.EXPRESSION)
             if (context != C.RETURN)
-                return Compiler.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
+                return Analyzer.analyze(context, RT.list(RT.list(Compiler.FNONCE, PersistentVector.EMPTY, form)));
 
             //(try try-expr* catch-expr* finally-expr?)
             //catch-expr: (catch class sym expr*)

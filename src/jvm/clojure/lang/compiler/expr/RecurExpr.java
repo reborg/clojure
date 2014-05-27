@@ -7,6 +7,7 @@ import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
 import clojure.lang.Compiler;
 import clojure.lang.*;
+import clojure.lang.analyzer.Analyzer;
 import clojure.lang.compiler.C;
 import clojure.lang.compiler.LocalBinding;
 
@@ -98,8 +99,8 @@ public class RecurExpr implements Expr, MaybePrimitiveExpr {
 
     public static class Parser implements IParser {
         public Expr parse(C context, Object frm) {
-            int line = Compiler.lineDeref();
-            int column = Compiler.columnDeref();
+            int line = Analyzer.lineDeref();
+            int column = Analyzer.columnDeref();
             String source = (String) Compiler.SOURCE.deref();
 
             ISeq form = (ISeq) frm;
@@ -110,7 +111,7 @@ public class RecurExpr implements Expr, MaybePrimitiveExpr {
                 throw new UnsupportedOperationException("Cannot recur across try");
             PersistentVector args = PersistentVector.EMPTY;
             for (ISeq s = RT.seq(form.next()); s != null; s = s.next()) {
-                args = args.cons(Compiler.analyze(C.EXPRESSION, s.first()));
+                args = args.cons(Analyzer.analyze(C.EXPRESSION, s.first()));
             }
             if (args.count() != loopLocals.count())
                 throw new IllegalArgumentException(
